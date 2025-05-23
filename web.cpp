@@ -20,7 +20,7 @@ class BaselineAnimator : public emp::web::Animate {
 //   emp::web::Canvas canvas{canvas_px, canvas_px, "canvas"};
     emp::web::Canvas canvas{600.0, 600.0, "canvas"};
 
-  OrgWorld world{config};
+  OrgWorld world{&config};
 
 public:
   BaselineAnimator() {
