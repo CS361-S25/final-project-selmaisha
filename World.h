@@ -3,6 +3,7 @@
 
 #include "emp/Evolve/World.hpp"
 #include "emp/math/Random.hpp"
+#include "emp/prefab/ReadoutPanel.hpp"
 
 #include "Task.h"
 #include "Org.h"
@@ -42,24 +43,12 @@ private:
   
 
 public:
-  //I don't understand what this is doing
-  OrgWorld(BaselineConfig *cfg)
-    : config(cfg), random((cfg->SEED()))
+
+  OrgWorld(emp::Random& rand, BaselineConfig* cfg)
+  : emp::World<Organism>(), config(cfg), random(rand)
     {
-      //what is this doing?
-    SetPopStruct_Mixed(config->POP_SIZE());
-    // Resize(config->POP_SIZE());
+
     }
-//     : emp::World<Organism>(
-//       (cfg.SEED() == -1)
-//         ? static_cast<uint32_t>(std::time(nullptr))
-//         : static_cast<uint32_t>(cfg.SEED())
-//     ),
-//     config(cfg),
-//     random(GetRandom())
-//   {
-//     SetPopStruct_Mixed(config->POP_SIZE());
-//   }
 
   ~OrgWorld() { 
     if(data_node_org_count) data_node_org_count.Delete();
@@ -80,37 +69,11 @@ public:
       Organism* new_org = new Organism(this, 0.0);
       Inject(*new_org);
     }
-    // Resize(config->WORLD_SIZE(), config->WORLD_SIZE());
     Resize(std::sqrt(config->POP_SIZE()), std::sqrt(config->POP_SIZE()));
 
-
-    //not sure what all of this is doing and if we need it.
-    /* // Resize(config.POP_SIZE()); 
-    for (size_t i = 0; i < config.POP_SIZE(); ++i) {
-      emp::vector<int> genome(config.PROG_LENGTH());
-      for (int& gene : genome) gene = random.GetUInt(config.INSTRUCTION_CNT());
-      Inject(genome);
-        // Inject(Organism(genome));
-    //   AddOrg(Organism(genome));
-        // Organism org(genome);
-        // SetupOrg(i, Organism(genome));
-        // Inject(Organism(genome));
-        // InjectOrg(std::make_shared<Organism>(genome));
-        // SetOrg(i, std::make_shared<Organism>(genome));
-        // AddOrgAt(std::make_shared<Organism>(genome), i);
-    } */
-
-  //could that be replaced with the following, or is there a reason for all of the above?
-  // Inject starting organisms into the world
-  /* for (int i = 0; i < config.NUM_START(); i++) {
-    Organism* new_org = new Organism(&world, 0);
-    world.Inject(*new_org);
-  }
-  // Set up the world grid and data output
-  world.Resize(config.NUM_BOXES(), config.NUM_BOXES()); */
-
   }
 
+  
   // Some getters we might not need
   double GetReward() {
     return config->TASK_REWARD();
@@ -310,37 +273,7 @@ public:
   }
 
 
-//   emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") {
-//     auto & file = SetupFile(filename);
-//     auto & node1 = GetOrgCountDataNode();
-//     auto & node2 = GetNOTCountDataNode();
-//     auto & node3 = GetNANDCountDataNode();
-//     auto & node4 = GetANDCountDataNode();
-//     auto & node5 = GetORNCountDataNode();
-//     auto & node6 = GetORCountDataNode();
-//     auto & node7 = GetANDNCountDataNode();
-//     auto & node8 = GetNORCountDataNode();
-//     auto & node9 = GetXORCountDataNode();
-//     auto & node10 = GetEQUCountDataNode();
-
-//     file.AddVar(update, "update", "Update number");
-//     file.AddVar(node1, "org_count", "Number of organisms");
-//     file.AddVar(node2, "NOT_count", "Number of NOT task solvers");
-//     file.AddVar(node3, "NAND_count", "Number of NAND task solvers");
-//     file.AddVar(node4, "AND_count", "Number of AND task solvers");
-//     file.AddVar(node5, "ORN_count", "Number of ORN task solvers");
-//     file.AddVar(node6, "OR_count", "Number of OR task solvers");
-//     file.AddVar(node7, "ANDN_count", "Number of ANDN task solvers");
-//     file.AddVar(node8, "NOR_count", "Number of NOR task solvers");
-//     file.AddVar(node9, "XOR_count", "Number of XOR task solvers");
-//     file.AddVar(node10, "EQU_count", "Number of EQU task solvers");
-    
-//     file.PrintHeaderKeys();
-
-//     return file;
-//   }
-
-emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") {
+  emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") {
     auto & file = SetupFile(filename);
     auto & node1 = GetOrgCountDataNode();
     auto & node2 = GetNOTCountDataNode();
@@ -353,20 +286,24 @@ emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") 
     auto & node9 = GetXORCountDataNode();
     auto & node10 = GetEQUCountDataNode();
 
-    file.AddFun<size_t>([&]() { return update; }, "update", "Update number");
-    file.AddFun<size_t>([&]() { return (size_t) node1.GetCurrent(); }, "org_count", "Number of organisms");
-    file.AddFun<size_t>([&]() { return (size_t) node2.GetCurrent(); }, "NOT_count", "Number of NOT task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node3.GetCurrent(); }, "NAND_count", "Number of NAND task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node4.GetCurrent(); }, "AND_count", "Number of AND task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node5.GetCurrent(); }, "ORN_count", "Number of ORN task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node6.GetCurrent(); }, "OR_count", "Number of OR task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node7.GetCurrent(); }, "ANDN_count", "Number of ANDN task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node8.GetCurrent(); }, "NOR_count", "Number of NOR task solvers");
-    file.AddFun<size_t>([&]() { return (size_t) node9.GetCurrent(); }, "XOR_count", "Number of XOR task solvers");
-
+    file.AddVar(update, "update", "Update number");
+    file.AddTotal(node1, "org_count", "Number of organisms");
+    file.AddTotal(node2, "NOT_count", "Number of NOT task solvers");
+    file.AddTotal(node3, "NAND_count", "Number of NAND task solvers");
+    file.AddTotal(node4, "AND_count", "Number of AND task solvers");
+    file.AddTotal(node5, "ORN_count", "Number of ORN task solvers");
+    file.AddTotal(node6, "OR_count", "Number of OR task solvers");
+    file.AddTotal(node7, "ANDN_count", "Number of ANDN task solvers");
+    file.AddTotal(node8, "NOR_count", "Number of NOR task solvers");
+    file.AddTotal(node9, "XOR_count", "Number of XOR task solvers");
+    file.AddTotal(node10, "EQU_count", "Number of EQU task solvers");
+    
     file.PrintHeaderKeys();
+
     return file;
-}
+  }
+
+
 
 
   /**
@@ -382,6 +319,7 @@ emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") 
     reproduce_queue.push_back(location);
   }
 
+  
   void Update() {
     emp::World<Organism>::Update();
     double mutation_rate = config->MUT_RATE(); //come back and see if we need to do this - track the cfg vars thoroughout
@@ -392,6 +330,11 @@ emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") 
       //auto& org = *pop[idx];
       //org.ProcessStep(config->TASK_REWARD()); //I set the reward as a propery of the tasks, not orgs, but maybe orgs actually make more sense
       pop[idx]->Process(idx); // Process the organism
+
+    //   if (pop[idx]->GetPoints() >= config->REPRO_COST() &&
+    //     pop[idx]->GetCPU().state.age_since_reproduction >= 5) {
+    //   ReproduceOrg(idx);  // queue up for reproduction
+    // }
     }
 
     for (emp::WorldPosition location : reproduce_queue) {
@@ -399,8 +342,13 @@ emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") 
         return;
       }
       auto org = pop[location.GetIndex()];
-      std::optional<Organism> offspring =
-          org->CheckReproduction(mutation_rate);
+
+      std::optional<Organism> offspring = org->CheckReproduction(
+            mutation_rate,
+            config->REPRO_COST(),
+            config->REPRO_LIFESPAN()
+        );
+
       if (offspring.has_value()) {        
         DoBirth(offspring.value(), location.GetIndex());
         org->GetCPU().state.age_since_reproduction = 0;
@@ -434,9 +382,7 @@ emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") 
     } */
   }
 
-  /* const emp::vector<emp::Ptr<Organism>>& GetPopulation() const {
-    return pop;
-  } */
+
 
   //do you know why these are different types? I have this fcn from my previous code
   const pop_t &GetPopulation() { return pop; }
@@ -483,19 +429,7 @@ emp::DataFile & SetupOrgFile(const std::string & filename="data/worlddata.csv") 
     }
   }
 
-  // I have changed this flow to be more similar to the datalab, lmk if you'd rather do it this way though
-  /* void LogStats(size_t update, std::ostream& os) {
-    double total = 0.0;
-    size_t count = 0;
-    for (const auto& org_ptr : pop) {
-      if (org_ptr) {
-        total += std::accumulate(org_ptr->GetGenome().begin(), org_ptr->GetGenome().end(), 0.0);
-        ++count;
-      }
-    }
-    double avg = count ? total / count : 0.0;
-    os << update << "," << avg << "\n";
-  } */
+  
 }; 
 
 #endif // WORLD_H
