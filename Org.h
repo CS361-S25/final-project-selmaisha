@@ -1,46 +1,83 @@
 #ifndef ORG_H
 #define ORG_H
 
-#include <iostream>
-// #include "emp/base/vector.hpp"
-// #include "emp/math/random_utils.hpp"
-// #include "emp/math/Random.hpp"
 #include "CPU.h"
-// #include "OrgState.h"
-#include "World.h"
-#include "ConfigSetup.h"
+#include "OrgState.h"
 #include "emp/Evolve/World_structure.hpp"
 
+/**
+ * Class representing a digital organism with an internal CPU for behavior,
+ * capable of processing tasks, accumulating points, mutating, and reproducing.
+ */
 class Organism {
-private:
-   CPU cpu;                          // CPU object for executing instructions
-
-  //emp::vector<int> genome;               // Digital genome (integer instructions)
-  //int energy = 0;                        // Energy points accumulated
-  //int age_since_reproduction = 0;        // Time since last reproduction
+  CPU cpu;  // Internal CPU object handling behavior and state
 
 public:
-  //Organism() = default;
-  //Organism(const emp::vector<int>& g) : genome(g) {}
+  /**
+   * Constructor
+   * input: Pointer to OrgWorld (world), optional initial points
+   * output: Organism instance
+   * purpose: Initialize organism with a CPU and optional starting points
+   */
   Organism(emp::Ptr<OrgWorld> world, double points = 0.0) : cpu(world) {
     SetPoints(points);
   }
 
-  //all this is "new" or from previous starter code
-  CPU& GetCPU() { return cpu; }
+  /**
+   * input: none
+   * output: Copy of internal CPU
+   * purpose: Access the organism's CPU object
+   */
+  CPU GetCPU() { return cpu; }
 
+  /**
+   * input: double _in (points)
+   * output: none
+   * purpose: Set the organism's points directly
+   */
   void SetPoints(double _in) { cpu.state.points = _in; }
+
+  /**
+   * input: double _in (points)
+   * output: none
+   * purpose: Add to the organism's current point total
+   */
   void AddPoints(double _in) { cpu.state.points += _in; }
+
+  /**
+   * input: none
+   * output: double (current points)
+   * purpose: Retrieve the organism's current point total
+   */
   double GetPoints() { return cpu.state.points; }
+
+  /**
+   * input: none
+   * output: none
+   * purpose: Reset the CPU to its initial state
+   */
   void Reset() { cpu.Reset(); }
+
+  /**
+   * input: double mutation_rate
+   * output: none
+   * purpose: Apply mutation to the organism's genome
+   */
   void Mutate(double mutation_rate) { cpu.Mutate(mutation_rate); }
 
-  void Process(emp::WorldPosition current_location) {
-    cpu.state.current_location = current_location;
-    cpu.RunCPUStep(10);
-    cpu.state.age_since_reproduction++;
+  bool IsDead(double max_age) {
+    return cpu.state.age > max_age;
   }
 
+  void ResetAge() {
+    cpu.state.age = 0;
+  }
+
+  /**
+   * input: double mutation_rate
+   * output: optional<Organism> (offspring)
+   * purpose: Attempt to create a mutated offspring of this organism
+   */
   std::optional<Organism> CheckReproduction(double mutation_rate) {
     Organism offspring = *this;
     offspring.Reset();
@@ -49,110 +86,41 @@ public:
     return {};
   }
 
-  bool IsDead(int max_lifespan) const {
-    return cpu.state.age_since_reproduction >= max_lifespan;
+  std::string GetTaskColor() const {
+    if (cpu.state.completed_NOT) return "blue";
+    if (cpu.state.completed_NAND) return "red";
+    if (cpu.state.completed_AND) return "green";
+    if (cpu.state.completed_ORN) return "yellow";
+    if (cpu.state.completed_OR) return "purple";
+    if (cpu.state.completed_ANDN) return "orange";
+    if (cpu.state.completed_NOR) return "pink";
+    if (cpu.state.completed_XOR) return "cyan";
+    if (cpu.state.completed_EQU) return "brown";
+    return "black";
   }
 
+
+  /**
+   * input: emp::WorldPosition current_location
+   * output: none
+   * purpose: Run a CPU step to process tasks at the given world location
+   */
+  void Process(emp::WorldPosition current_location) {
+    cpu.state.current_location = current_location;
+    cpu.state.age++;
+    cpu.RunCPUStep(10);
+  }
+
+  /**
+   * input: none
+   * output: Printed genome to stdout
+   * purpose: Display the organism's genome for debugging or inspection
+   */
   void PrintGenome() {
     std::cout << "program ------------" << std::endl;
     cpu.PrintGenome();
     std::cout << "end ---------------" << std::endl;
   }
-//   emp::vector<int> genome;               // Digital genome (integer instructions)
-//   int energy = 0;                        // Energy points accumulated
-//   int age_since_reproduction = 0;        // Time since last reproduction
-
-// public:
-//   Organism() = default;
-//   Organism(const emp::vector<int>& g) : genome(g) {}
-
-//   const emp::vector<int>& GetGenome() const { return genome; }
-//   int GetEnergy() const { return energy; }  // Added for drawing by energy
-
-//   void Mutate(double mut_rate, size_t instruction_count, emp::Random& random) {
-//     for (int& gene : genome) {
-//       if (random.GetDouble() < mut_rate) {
-//         gene = random.GetUInt(instruction_count);
-//       }
-//     }
-//   }
-
-//   void ProcessStep(int reward_per_step = 5) {
-//     energy += reward_per_step;
-//     ++age_since_reproduction;
-//   }
-
-//   std::optional<Organism> TryReproduce(int reproduction_cost, int max_lifespan, emp::Random& random, double mut_rate, size_t instruction_count) {
-//     if (energy >= reproduction_cost) {
-//       Organism offspring = *this;
-//       offspring.Mutate(mut_rate, instruction_count, random);
-//       offspring.energy = 0;
-//       offspring.age_since_reproduction = 0;
-
-//       energy -= reproduction_cost;
-//       age_since_reproduction = 0;
-
-//       return offspring;
-//     }
-
-//     if (age_since_reproduction >= max_lifespan) {
-//       return std::nullopt;
-//     }
-
-//     return std::nullopt;
-//   }
-
-//   bool IsDead(int max_lifespan, int reproduction_cost) const {
-//     return age_since_reproduction >= max_lifespan && energy < reproduction_cost;
-//   }
-
-//   emp::vector<int> genome;               // Digital genome (integer instructions)
-//   int energy = 0;                        // Energy points accumulated
-//   int age_since_reproduction = 0;        // Time since last reproduction
-
-// public:
-//   Organism() = default;
-//   Organism(const emp::vector<int>& g) : genome(g) {}
-
-//   const emp::vector<int>& GetGenome() const { return genome; }
-//   int GetEnergy() const { return energy; }  // Added for drawing by energy
-
-//   void Mutate(double mut_rate, size_t instruction_count, emp::Random& random) {
-//     for (int& gene : genome) {
-//       if (random.GetDouble() < mut_rate) {
-//         gene = random.GetUInt(instruction_count);
-//       }
-//     }
-//   }
-
-//   void ProcessStep(int reward_per_step = 5) {
-//     energy += reward_per_step;
-//     ++age_since_reproduction;
-//   }
-
-//   std::optional<Organism> TryReproduce(int reproduction_cost, int max_lifespan, emp::Random& random, double mut_rate, size_t instruction_count) {
-//     if (energy >= reproduction_cost) {
-//       Organism offspring = *this;
-//       offspring.Mutate(mut_rate, instruction_count, random);
-//       offspring.energy = 0;
-//       offspring.age_since_reproduction = 0;
-
-//       energy -= reproduction_cost;
-//       age_since_reproduction = 0;
-
-//       return offspring;
-//     }
-
-//     if (age_since_reproduction >= max_lifespan) {
-//       return std::nullopt;
-//     }
-
-//     return std::nullopt;
-//   }
-
-//   bool IsDead(int max_lifespan, int reproduction_cost) const {
-//     return age_since_reproduction >= max_lifespan && energy < reproduction_cost;
-//   }
 };
 
-#endif // ORG_H
+#endif

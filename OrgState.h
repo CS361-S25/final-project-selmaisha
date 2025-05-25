@@ -14,13 +14,24 @@ class OrgWorld;
  * Stores world reference, inputs, position, and task completion flags.
  */
 struct OrgState {
-    emp::Ptr<OrgWorld> world;  ///< Pointer to the world the organism belongs to
-    int age_since_reproduction = 0; ///< Time since last reproduction
+  emp::Ptr<OrgWorld> world;  ///< Pointer to the world the organism belongs to
 
-    uint32_t last_inputs[4];   ///< Array for tracking the four most recent input values
-    size_t last_input_idx;     ///< Index of the most recent input in the circular buffer
-    double points;             ///< Accumulated points used for reproduction decisions
-    emp::WorldPosition current_location; ///< Current location of the organism in the world
+  uint32_t last_inputs[4];   ///< Array for tracking the four most recent input values
+  size_t last_input_idx;     ///< Index of the most recent input in the circular buffer
+  double points;             ///< Accumulated points used for reproduction decisions
+  double age;           ///< Number of updates since last reproduction
+  emp::WorldPosition current_location; ///< Current location of the organism in the world
+
+  // Task completion flags
+  bool completed_NOT = false;
+  bool completed_NAND = false;
+  bool completed_AND = false;
+  bool completed_ORN = false;
+  bool completed_OR = false;
+  bool completed_ANDN = false;
+  bool completed_NOR = false;
+  bool completed_XOR = false;
+  bool completed_EQU = false;
 
   /**
    * input: uint32_t input (new input value)
@@ -31,18 +42,6 @@ struct OrgState {
     last_inputs[last_input_idx] = input;
     last_input_idx = (last_input_idx + 1) % 4;
   }
-
-  public:
-    // Task completion flags
-    bool completed_NOT = false;
-    bool completed_NAND = false;
-    bool completed_AND = false;
-    bool completed_ORN = false;
-    bool completed_OR = false;
-    bool completed_ANDN = false;
-    bool completed_NOR = false;
-    bool completed_XOR = false;
-    bool completed_EQU = false;
 };
 
 #endif

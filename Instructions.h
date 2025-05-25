@@ -61,7 +61,6 @@ struct ReproduceInstruction {
                   typename Spec::peripheral_t &state) noexcept {
     if (state.points > 20) {
       state.world->ReproduceOrg(state.current_location);
-      state.points -= state.world->GetReward();  // or use REPRO_COST
       state.points -= 0;
     }
     

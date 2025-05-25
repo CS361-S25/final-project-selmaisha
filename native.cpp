@@ -1,65 +1,24 @@
-// #include "World.h"
-// #include "ConfigSetup.h"
-// #include <iostream>
-// #include <fstream>
-// #include "emp/config/config.hpp"
-// #include "emp/config/ArgManager.hpp"
+// Compile with `c++ -std=c++17 -Isignalgp-lite/include native.cpp`
 
-// int main(int argc, char* argv[]) {
-//   BaselineConfig config;
-
-
-//   // Register all config fields with ArgManager
-//   auto specs = emp::ArgManager::make_builtin_specs(&config);
-//   emp::ArgManager am(argc, argv, specs);
-
-//   // Read from file and URL
-//   config.Read("baseline_config.cfg");
-//   am.UseCallbacks();
-
-//   if (am.HasUnused()) {
-//     std::cerr << "Unused config parameters!" << std::endl;
-//     std::exit(EXIT_FAILURE);
-//   }
-
-//   // Create and run simulation
-//   OrgWorld world(config);
-//   world.InitPopulation();
-
-//   std::ofstream ofs(config.OUTPUT_DIR() + "baseline_data.csv");
-//   ofs << "update,avg_genome_sum\n";
-
-//   for (size_t update = 0; update < config.RUN_TIME(); ++update) {
-//     world.Update();
-//     if (update % 100 == 0) {
-//       world.LogStats(update, ofs);
-//       std::cout << "Update: " << update << std::endl;
-//     }
-//   }
-
-//   std::cout << "Simulation complete. Data written to baseline_data.csv\n";
-//   return 0;
-// }
+#include <iostream>
 #include "World.h"
 #include "ConfigSetup.h"
-#include <iostream>
-/* #include <fstream>
-#include "emp/config/config.hpp"
-#include "emp/config/ArgManager.hpp"
+
+/**
+ * input: argc (argument count), argv (argument values)
+ * output: none (program side-effects: config file read/write, organism world initialized and updated)
+ * purpose: Entry point for the NATIVE version of the project. Initializes configuration, sets up the world,
+ *          injects organisms, and runs updates over the specified number of generations.
  */
-
-int main(int argc, char* argv[]) {
-  BaselineConfig config;
-
-  bool success = config.Read("baseline_config.cfg");
-  if (!success) config.Write("baseline_config.cfg");
+int main(int argc, char *argv[]) {
+  // Load or initialize configuration
+  WorldConfig config;
+  bool success = config.Read("MySettings.cfg");
+  if (!success) config.Write("MySettings.cfg");
 
   // Parse command-line arguments and config file
-  // I adapted it to be closer to what we have done before
-  config.Read("baseline_config.cfg");
-
   auto args = emp::cl::ArgManager(argc, argv);
-  if (args.ProcessConfigOptions(config, std::cout, "baseline_config.cfg") == false) {
+  if (args.ProcessConfigOptions(config, std::cout, "MySettings.cfg") == false) {
     std::cerr << "There was a problem in processing the options file." << std::endl;
     exit(1);
   }
@@ -68,46 +27,30 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
+  // Initialize random number generators
+  emp::Random random(config.SEED());
+  OrgWorld world(random, &config);
+  // Ensure SignalGP-Lite uses the same seed
+  sgpl::tlrand.Get().ResetSeed(config.SEED());
 
-/*   // Register all config fields with ArgManager
-  auto specs = emp::ArgManager::make_builtin_specs(&config);
-  emp::ArgManager am(argc, argv, specs);
+  // Inject starting organisms into the world
+  world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
+  for (int i = 0; i < config.NUM_START(); i++) {
+    Organism* new_org = new Organism(&world, 0);
+    world.Inject(*new_org);
+  }
 
-  // Read from file and URL
-  config.Read("baseline_config.cfg");
-  am.UseCallbacks();
-
-  if (am.HasUnused()) {
-    std::cerr << "Unused config parameters!" << std::endl;
-    std::exit(EXIT_FAILURE);
-  } */
-
-  // Create and run simulation
-  OrgWorld world(&config);
-  world.InitPopulation(); 
-
-
-  // again adapted to be closer to what we have done before - something wasn't working with the OUTPUT_DIR
-  world.SetupOrgFile("worlddata.csv").SetTimingRepeat(40);
+  // Set up the world grid and data output
+  world.Resize(config.NUM_BOXES(), config.NUM_BOXES());
+  
+  world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/10);
 
   // Run the simulation for the specified number of updates
-  for (int update = 0; update < config.RUN_TIME(); update++) {
+  for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
   }
 
-  /* std::ofstream ofs(config.OUTPUT_DIR() + "baseline_data.csv");
-  ofs << "update,avg_genome_sum\n";
-
-  for (size_t update = 0; update < config.RUN_TIME(); ++update) {
-    world.Update();
-    if (update % 100 == 0) {
-      world.LogStats(update, ofs);
-      std::cout << "Update: " << update << std::endl;
-    }
-  } */
-
-  std::cout << "Simulation complete.\n";
-  std::cout << "some text\n";
-  return 0;
+  // Debug info if needed
+  // std::cout << "Num orgs: " << world.GetNumOrgs() << std::endl;
 }
