@@ -21,6 +21,7 @@ public:
    */
   Organism(emp::Ptr<OrgWorld> world, double points = 0.0) : cpu(world) {
     SetPoints(points);
+    cpu.state.age = 0.0;  // Initialize the last input index
   }
 
   /**

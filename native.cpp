@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
   world.Resize(config.NUM_BOXES(), config.NUM_BOXES());
   
   world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/10);
+  //world.SetupOrgFile("worlddata.csv").SetTimingRepeat(40);
 
   // Run the simulation for the specified number of updates
   for (int update = 0; update < config.NUM_UPDATES(); update++) {

@@ -114,6 +114,8 @@ class AEAnimator : public emp::web::Animate {
             config_panel.SetRange("NUM_BOXES", "10", "30", "1");
             config_panel.SetRange("NUM_START", "1", "100", "1");
             config_panel.SetRange("MUTATION_RATE", "0", "0.1");
+            config_panel.SetRange("REWARD", "0", "20", "1");
+            config_panel.SetRange("LIFE_SPAN", "1", "1000", "1");
             settings << config_panel;
         }
 
@@ -127,6 +129,7 @@ class AEAnimator : public emp::web::Animate {
             num_h_boxes = config.NUM_BOXES();
             num_w_boxes = config.NUM_BOXES();
             world.SetPopStruct_Grid(num_w_boxes, num_h_boxes);
+            //world.SetPopStruct_Mixed(); //I like the idea of a mixed popstruct - but then the initialization needs to be random
             for (int i = 0; i < config.NUM_START(); i++) {
                 new_org = new Organism(&world, 0);
                 world.Inject(*new_org);
@@ -134,7 +137,6 @@ class AEAnimator : public emp::web::Animate {
             world.Resize(num_h_boxes, num_w_boxes);
         }
 
-        //FIX TEXT
         void SetupReadoutPanel() {
             emp::prefab::ReadoutPanel values("Readout Values", 100);
             values.AddValues(

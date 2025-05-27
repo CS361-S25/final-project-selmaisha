@@ -43,6 +43,9 @@ class OrgWorld : public emp::World<Organism> {
   emp::Ptr<emp::DataMonitor<int>> data_node_NOR_count;
   emp::Ptr<emp::DataMonitor<int>> data_node_XOR_count;
   emp::Ptr<emp::DataMonitor<int>> data_node_EQU_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_DEAD_count;
+
+  int died_of_old_age = 0;
 
 
 public:
@@ -72,6 +75,7 @@ public:
     if(data_node_NOR_count) data_node_NOR_count.Delete();
     if(data_node_XOR_count) data_node_XOR_count.Delete();
     if(data_node_EQU_count) data_node_EQU_count.Delete();
+    if(data_node_DEAD_count) data_node_DEAD_count.Delete();
   }
 
   /**
@@ -147,6 +151,17 @@ public:
     return *data_node_org_count;
   }
   
+  emp::DataMonitor<int>& GetDeathCountDataNode(){
+    if (!data_node_DEAD_count) {
+      data_node_DEAD_count.New();
+      OnUpdate([this](size_t) {
+        data_node_DEAD_count->Reset();
+        data_node_DEAD_count->AddDatum(died_of_old_age);
+      });
+    }
+    return *data_node_DEAD_count;
+  }
+
   /**
    *  Input: none
    * Output: Reference to emp::DataMonitor<int>
@@ -302,6 +317,7 @@ public:
     auto & node8 = GetNORCountDataNode();
     auto & node9 = GetXORCountDataNode();
     auto & node10 = GetEQUCountDataNode();
+    auto & node11 = GetDeathCountDataNode();
     
     //FIX THESE EXPLANATIONS
     file.AddVar(update, "update", "Update");
@@ -315,6 +331,7 @@ public:
     file.AddTotal(node8, "nor", "Number of orgs solving nor");
     file.AddTotal(node9, "xor", "Number of orgs solving xor");
     file.AddTotal(node10, "equ", "Number of orgs solving equ");
+    file.AddTotal(node11, "dead", "Number of orgs that died of old age");
 
 
     file.PrintHeaderKeys();
@@ -357,12 +374,19 @@ public:
         DoBirth(offspring.value(), location.GetIndex());
         org->ResetAge(); // Reset the parent organism after reproduction
       }
-      if (org->IsDead(config->LIFE_SPAN())) {
-        RemoveOrgAt(location);
-      }
-
     }
     reproduce_queue.clear();
+
+    //check for death after reproduction
+    for (int i : schedule) {
+      if (!IsOccupied(i)) { continue; }
+      emp::WorldPosition current_location(i);
+      auto & org = pop[i];
+      if (org->IsDead(config->LIFE_SPAN())) {
+        RemoveOrgAt(current_location);
+        died_of_old_age++;
+      }
+    }
   }
 
   bool IsDead(emp::WorldPosition location) {
