@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   // Set up the world grid and data output
   world.Resize(config.NUM_BOXES(), config.NUM_BOXES());
   
-  world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/10);
+  world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/100);
   //world.SetupOrgFile("worlddata.csv").SetTimingRepeat(40);
 
   // Run the simulation for the specified number of updates
