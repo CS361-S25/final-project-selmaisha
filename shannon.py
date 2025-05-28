@@ -24,7 +24,7 @@ def shannon_index(phenotypes):
         return 0.0
     
     shannon = 0.0
-    for count in phenotypes[2:]:
+    for count in phenotypes[2:-1]:
         if count > 0:
             proportion = count / total
             shannon -= proportion * log(proportion)
@@ -42,3 +42,14 @@ plt.xlabel('Update (x10000)')
 plt.ylabel('Shannon Index')
 plt.grid()
 plt.savefig('shannon_index_plot.png')
+
+#plot org over time, and then the sum of rows 3 through 11 and plot over time
+plt.figure(figsize=(10, 6))
+plt.plot(datafile['org'], marker='o', linestyle='-', color='g', label='Org')
+plt.plot(datafile.iloc[:, 2:11].sum(axis=1), marker='x', linestyle='--', color='r', label='Sum of Phenotypes')
+plt.title('Organism and Phenotype Sum Over Time')
+plt.xlabel('Update (x10000)')
+plt.ylabel('Count')
+plt.legend()
+plt.grid()
+plt.savefig('org_and_phenotype_sum_plot.png')

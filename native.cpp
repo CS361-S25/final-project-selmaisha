@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
 
   // Inject starting organisms into the world
   world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
+  //world.SetPopStruct_Mixed();
   for (int i = 0; i < config.NUM_START(); i++) {
     Organism* new_org = new Organism(&world, 0);
     world.Inject(*new_org);
