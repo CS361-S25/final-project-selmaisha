@@ -100,14 +100,28 @@ public:
     return "black";
   }
 
+  std::string GetSolvedTask() const {
+  if (cpu.state.completed_NOT) return "NOT";
+  if (cpu.state.completed_NAND) return "NAND";
+  if (cpu.state.completed_AND) return "AND";
+  if (cpu.state.completed_ORN) return "ORN";
+  if (cpu.state.completed_OR) return "OR";
+  if (cpu.state.completed_ANDN) return "ANDN";
+  if (cpu.state.completed_NOR) return "NOR";
+  if (cpu.state.completed_XOR) return "XOR";
+  if (cpu.state.completed_EQU) return "EQU";
+  return "";
+}
 
   /**
    * input: emp::WorldPosition current_location
    * output: none
    * purpose: Run a CPU step to process tasks at the given world location
    */
-  void Process(emp::WorldPosition current_location) {
-    cpu.state.current_location = current_location;
+  // void Process(emp::WorldPosition current_location) {
+  virtual void Process(OrgWorld& world, size_t id) {
+    // cpu.state.current_location = current_location;
+    cpu.state.current_location = emp::WorldPosition(id);
     cpu.state.age++;
     cpu.RunCPUStep(10);
   }
@@ -123,5 +137,7 @@ public:
     std::cout << "end ---------------" << std::endl;
   }
 };
+
+
 
 #endif
