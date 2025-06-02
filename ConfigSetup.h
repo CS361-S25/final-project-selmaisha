@@ -11,6 +11,8 @@ EMP_BUILD_CONFIG(WorldConfig,
     VALUE(REWARD, double, 20.0, "What is the reward for completing a task?"),
     VALUE(NUM_BOXES, int, 20, "How many boxes is on one side the world?"),
     VALUE(LIFE_SPAN, int, 30, "How many updates without reproduction before an organism dies?"),
+    VALUE(PARASITE_VIRULENCE, double, 0.5, "Fraction of host reward stolen by matching parasites"),
+
   )
 
 #endif

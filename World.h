@@ -7,6 +7,10 @@
 #include "Org.h"
 #include "Task.h"
 #include "ConfigSetup.h"
+// class Parasite;
+
+#include "Parasite.h"
+
 
 
 /**
@@ -18,6 +22,8 @@
 class OrgWorld : public emp::World<Organism> {
   //emp::Random &random;
   emp::vector<emp::WorldPosition> reproduce_queue;
+  emp::vector<std::shared_ptr<Parasite>> parasite_pop;
+
   WorldConfig *config;
   /// List of task pointers that organisms can solve.
   std::vector<Task*> tasks{
@@ -45,6 +51,9 @@ class OrgWorld : public emp::World<Organism> {
   emp::Ptr<emp::DataMonitor<int>> data_node_EQU_count;
   emp::Ptr<emp::DataMonitor<int>> data_node_DEAD_count;
 
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_count;
+
+
   int died_of_old_age = 0;
 
 
@@ -55,7 +64,9 @@ public:
    * output: none
    * purpose: Constructor that initializes the world with configuration and RNG.
    */
-  OrgWorld(emp::Random &_random, WorldConfig *_config) : emp::World<Organism>(_random), config(_config){
+  OrgWorld(emp::Random &_random, WorldConfig *_config) 
+  : emp::World<Organism>(_random), config(_config){
+    parasite_pop.resize(GetSize());
     //loop over tasks and set the reward
   }
 
@@ -96,6 +107,26 @@ public:
     return config->MUTATION_RATE();
   }
 
+    bool IsParasite(size_t id) const {
+    return id < parasite_pop.size() && parasite_pop[id] != nullptr;
+  }
+
+  std::shared_ptr<Parasite> GetParasite(size_t id) const {
+    return parasite_pop[id];
+  }
+
+  void PlaceParasite(std::shared_ptr<Parasite> parasite, size_t id) {
+    parasite_pop[id] = parasite;
+  }
+
+
+  void RemoveParasite(size_t id) {
+    if (id < parasite_pop.size()) {
+      parasite_pop[id] = nullptr;
+    }
+  }
+
+
   //a simple struct to store the number of organisms solving each task
   struct TaskSolverCounts {
     int NOT_count = 0;
@@ -134,6 +165,21 @@ public:
     return task_solvers;
   }
 
+
+  emp::DataMonitor<int>& GetParasiteCountDataNode() {
+    if (!data_node_parasite_count) {
+      data_node_parasite_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_count->Reset();
+        int count = 0;
+        for (auto& p : parasite_pop) {
+          if (p) ++count;
+        }
+        data_node_parasite_count->AddDatum(count);
+      });
+    }
+    return *data_node_parasite_count;
+  }
 
   /**
    *  Input: none
@@ -299,6 +345,12 @@ public:
     return *data_node_EQU_count;
   }
 
+  std::string GetTaskAt(size_t idx) {
+    auto org_ptr = GetOrgPtr(idx);
+    if (org_ptr) return org_ptr->GetSolvedTask(); // Or however you track the task name
+    return "";
+  }
+
 
   /** 
    * Input: optional filename (default "worlddata.csv")
@@ -318,6 +370,8 @@ public:
     auto & node9 = GetXORCountDataNode();
     auto & node10 = GetEQUCountDataNode();
     auto & node11 = GetDeathCountDataNode();
+    auto & node12 = GetParasiteCountDataNode();
+
     
     //FIX THESE EXPLANATIONS
     file.AddVar(update, "update", "Update");
@@ -332,6 +386,8 @@ public:
     file.AddTotal(node9, "xor", "Number of orgs solving xor");
     file.AddTotal(node10, "equ", "Number of orgs solving equ");
     file.AddTotal(node11, "dead", "Number of orgs that died of old age");
+    file.AddTotal(node12, "parasites", "Number of parasites present");
+
 
 
     file.PrintHeaderKeys();
@@ -347,6 +403,24 @@ public:
   const pop_t &GetPopulation() { return pop; }
 
   /**
+    * Input: OrgState &state, task name as string
+    * Output: bool indicating if that task has been solved by this organism
+    * Purpose: Allows parasite to determine if host solved a matching task
+    */
+    bool SolvedSameTask(const OrgState & state, const std::string & task_name) const {
+      if (task_name == "NOT")  return state.completed_NOT;
+      if (task_name == "NAND") return state.completed_NAND;
+      if (task_name == "AND")  return state.completed_AND;
+      if (task_name == "ORN")  return state.completed_ORN;
+      if (task_name == "OR")   return state.completed_OR;
+      if (task_name == "ANDN") return state.completed_ANDN;
+      if (task_name == "NOR")  return state.completed_NOR;
+      if (task_name == "XOR")  return state.completed_XOR;
+      if (task_name == "EQU")  return state.completed_EQU;
+      return false;  // 
+    }
+
+  /**
    * Input: none
    * Output: none
    * Purpose: Update the world by running each organism and handling reproduction
@@ -359,7 +433,23 @@ public:
     emp::vector<size_t> schedule = emp::GetPermutation(GetRandom(), GetSize());
     for (int i : schedule) {
       if (!IsOccupied(i)) { continue; }
-      pop[i]->Process(i);
+      pop[i]->Process(*this, i);
+    }
+
+    // Parasite processing seperate for now
+    for (int i : schedule) {
+      if (!IsParasite(i)) continue;
+      auto parasite = GetParasite(i);
+      if (!IsOccupied(i)) continue;
+
+      auto org_ptr = GetOrgPtr(i);
+      auto host_state = org_ptr->GetCPU().state;
+      std::string task_name = org_ptr->GetSolvedTask();
+
+      if (SolvedSameTask(host_state, task_name)) {
+        parasite->AddPoints(GetVirulence());
+        parasite->SetLastTask(task_name);
+      }
     }
 
     //Time to allow reproduction for any organisms that ran the reproduce instruction
@@ -392,6 +482,9 @@ public:
   bool IsDead(emp::WorldPosition location) {
     return pop[location.GetIndex()]->IsDead(config->LIFE_SPAN());
   }
+
+  double GetVirulence() const { return config->PARASITE_VIRULENCE(); }
+
 
   /**
    * Input: float output, OrgState &state

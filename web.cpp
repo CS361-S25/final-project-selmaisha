@@ -1,89 +1,135 @@
+
 #define UIT_VENDORIZE_EMP
 #define UIT_SUPPRESS_MACRO_INSEEP_WARNINGS
 
-// Include necessary libraries for web interface, random number generation, and world simulation
-#include "emp/math/Random.hpp"
-#include "emp/prefab/Card.hpp"
-#include "emp/prefab/ReadoutPanel.hpp"
-#include "emp/web/Animate.hpp"
-#include "emp/web/Document.hpp"
 #include "emp/web/web.hpp"
-#include "World.h"
-#include "Org.h"
-#include "emp/config/ArgManager.hpp"
+#include "emp/web/Animate.hpp"
+#include "emp/web/Canvas.hpp"
 #include "emp/prefab/ConfigPanel.hpp"
+#include "emp/web/init.hpp"
 #include "emp/web/UrlParams.hpp"
+#include "emp/prefab/ReadoutPanel.hpp"
+#include "emp/math/Random.hpp"
+
 #include "ConfigSetup.h"
+#include "World.h"
+#include "Parasite.h"
 
-// Declare global document objects for web interface
-emp::web::Document doc("target");
-emp::web::Document settings("settings");
-emp::web::Document buttons("buttons");
-emp::web::Document panel("panel");
-emp::web::Document explanation("explanation");
-
-// Global config for the world setup
 WorldConfig config;
 
-/**
- * input: none
- * output: none
- * purpose: Handles the animation and display of the simulation, including grid drawing, organism movement, and updates to the world.
- */
-class AEAnimator : public emp::web::Animate {
+emp::web::Document doc("target");
+emp::web::Document settings("settings");
+emp::web::Document panel("panel");
 
-    // Define arena dimensions and grid cell size
-    int num_h_boxes = 30; // height of the grid (to be configurable)
-    int num_w_boxes = 30; // width of the grid (to be configurable)
-    const double RECT_SIDE = 15; // size of each grid cell
-    const double width{num_w_boxes * RECT_SIDE};
-    const double height{num_h_boxes * RECT_SIDE};
-    int update_count = 0;
-    emp::Random random{config.SEED()}; // Initialize random number generator with seed
-    OrgWorld world{random, &config};   // Create the world simulation
+class BaselineAnimator : public emp::web::Animate {
+  const int num_w_boxes = 32;
+  const int num_h_boxes = 32;
+  const double RECT_SIDE = 15;
+  const double width = num_w_boxes * RECT_SIDE;
+  const double height = num_h_boxes * RECT_SIDE;
+  int update_count = 0;
 
-    // Initialize the canvas for drawing the world
-    emp::web::Canvas canvas{width, height, "canvas"}; //might get web issue here
+  emp::Ptr<emp::Random> random;
+  emp::Ptr<OrgWorld> world;
 
-    public:
+  emp::web::Canvas canvas{width, height, "canvas"};
 
-        /**
-         * input: none
-         * output: none (side-effect: initializes simulation, config panels, and web interface elements)
-         * purpose: Initializes the AEAnimator, sets up world grid, injects organisms, sets up configuration panel and web interface.
-         */
-        AEAnimator() {
-            SetupCanvasAndControls();
-            ApplyConfigFromArgs();
-            SetupConfigPanel();
-            DisplayExplanation();
-            InitializeWorld();
-            SetupReadoutPanel();
-        }
+public:
+  BaselineAnimator() {
+    ApplyConfigFromArgs();  // Load from URL if available
+    random.New(config.SEED());
+    world.New(*random, &config);
 
-        /**
-     * input: none
-     * output: none (side-effect: updates the world state and redraws the grid)
-     * purpose: Updates the world for the current frame, redrawing the grid with new state (tasks completed, etc.)
-     */
-    void DoFrame() override {
-    world.Update();
+    SetupCanvasAndControls();
+    SetupConfigPanel();
+    InitializeWorld();
+    SetupReadoutPanel();
+  }
+
+  void DoFrame() override {
+    world->Update();
     update_count++;
     Draw();
   }
 
+private:
+  void SetupCanvasAndControls() {
+    doc << canvas;
+
+    doc << GetToggleButton("Toggle");
+    doc << GetStepButton("Step");
+
+
+    doc << emp::web::Button([this]() {
+      ResetWorldFromConfig();
+    }, "Apply Settings");
+  }
+
+  void ApplyConfigFromArgs() {
+    auto specs = emp::ArgManager::make_builtin_specs(&config);
+    emp::ArgManager am(emp::web::GetUrlParams(), specs);
+    am.UseCallbacks();  // Updates config from URL
+  }
+
+  void SetupConfigPanel() {
+    emp::prefab::ConfigPanel config_panel(config);
+    config_panel.ExcludeSetting("SEED");
+    config_panel.ExcludeSetting("OUTPUT_DIR");
+    config_panel.ExcludeSetting("RUN_TIME");
+    config_panel.SetRange("NUM_START", "1", "100", "1");
+    config_panel.SetRange("MUT_RATE", "0", "0.1");
+    config_panel.SetRange("LIFE_SPAN", "1", "1000", "1");
+
+    settings << config_panel;
+  }
+
+  void InitializeWorld() {
+    world->SetPopStruct_Grid(num_w_boxes, num_h_boxes);
+    world->Resize(num_h_boxes, num_w_boxes);
+    auto p = std::make_shared<Parasite>(world, 0.0);
+    world->PlaceParasite(p, 0);  // Force parasite at cell 0
+    for (int i = 0; i < config.NUM_START(); ++i) {
+      // auto* new_org = new Organism(world, 0.0);
+      // world->Inject(*new_org);
+      size_t pos = world->GetRandom().GetUInt(world->GetSize());  
+
+      if (world->GetRandom().P(0.8)) {
+        auto* host = new Organism(world, 0.0);
+        world->InjectAt(*host, pos);
+      } else {
+        auto p = std::make_shared<Parasite>(world, 0.0);
+        world->PlaceParasite(p, pos);
+      }
+  
+
+    }
+    update_count = 0;
+    Draw();
+  }
+
+  void ResetWorldFromConfig() {
+    ApplyConfigFromArgs();             // Reload settings from URL
+    random->ResetSeed(config.SEED());  // Reseed RNG
+    world.New(*random, &config);       // Reset world
+    InitializeWorld();                 // Re-inject and resize
+  }
+
   void Draw() {
     canvas.Clear();
-    const auto& pop = world.GetPopulation();
+    const auto& pop = world->GetPopulation();
     size_t org_num = 0;
 
     for (int x = 0; x < num_w_boxes; ++x) {
       for (int y = 0; y < num_h_boxes; ++y) {
-        if (world.IsOccupied(org_num)) {
+        if (world->IsOccupied(org_num)) {
           const auto& org_ptr = pop[org_num];
           if (org_ptr) {
             std::string color = org_ptr->GetTaskColor();  
             canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE - 1, RECT_SIDE - 1, color, "black");
+          }if (world->IsParasite(org_num)) {
+            canvas.Circle(x * RECT_SIDE + RECT_SIDE / 2,
+                          y * RECT_SIDE + RECT_SIDE / 2,
+                          RECT_SIDE / 4, "red");
           }
         } else {
           canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE - 1, RECT_SIDE - 1, "white", "black");
@@ -93,98 +139,53 @@ class AEAnimator : public emp::web::Animate {
     }
   }
 
-    private:
-        void SetupCanvasAndControls() {
-            doc << canvas;
-            buttons << GetToggleButton("Toggle");
-            buttons << GetStepButton("Step");
-        }
-
-        void ApplyConfigFromArgs() {
-            auto specs = emp::ArgManager::make_builtin_specs(&config);
-            emp::ArgManager am(emp::web::GetUrlParams(), specs);
-            am.UseCallbacks();
-            if (am.HasUnused()) std::exit(EXIT_FAILURE);
-        }
-
-        void SetupConfigPanel() {
-            emp::prefab::ConfigPanel config_panel(config);
-            config_panel.ExcludeSetting("SEED");
-            config_panel.ExcludeSetting("NUM_UPDATES");
-            config_panel.SetRange("NUM_BOXES", "10", "30", "1");
-            config_panel.SetRange("NUM_START", "1", "100", "1");
-            config_panel.SetRange("MUTATION_RATE", "0", "0.1");
-            config_panel.SetRange("REWARD", "0", "20", "1");
-            config_panel.SetRange("LIFE_SPAN", "1", "1000", "1");
-            settings << config_panel;
-        }
-
-        void DisplayExplanation() {
-            explanation << "This is our setup for the baseline. MORE EXPLANATIONS HERE";
-        }
-
-        void InitializeWorld() {
-            random.ResetSeed(config.SEED());
-            Organism* new_org;
-            num_h_boxes = config.NUM_BOXES();
-            num_w_boxes = config.NUM_BOXES();
-            world.SetPopStruct_Grid(num_w_boxes, num_h_boxes);
-            //world.SetPopStruct_Mixed(); //I like the idea of a mixed popstruct - but then the initialization needs to be random
-            for (int i = 0; i < config.NUM_START(); i++) {
-                new_org = new Organism(&world, 0);
-                world.Inject(*new_org);
-            }
-            world.Resize(num_h_boxes, num_w_boxes);
-        }
-
-        void SetupReadoutPanel() {
-            emp::prefab::ReadoutPanel values("Readout Values", 100);
-            values.AddValues(
-                "Organisms", "How many organisms are present", [this]() {
-                    return emp::to_string(world.GetNumOrgs());
-                },
-                "NOT", "How many organisms are solving not tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().NOT_count);
-                },
-                "NAND", "How many organisms are solving nand tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().NAND_count);
-                },
-                "AND", "How many organisms are solving and tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().AND_count);
-                },
-                "ORN", "How many organisms are solving orn tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().ORN_count);
-                },
-                "OR", "How many organisms are solving or tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().OR_count);
-                },
-                "ANDN", "How many organisms are solving andn tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().ANDN_count);
-                },
-                "NOR", "How many organisms are solving nor tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().NOR_count);
-                },
-                "XOR", "How many organisms are solving xor tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().XOR_count);
-                },
-                "EQU", "How many organisms are solving equ tasks", [this]() {
-                    return emp::to_string(world.GetAllTaskSolvers().EQU_count);
-                },
-                "Update step", "Current update step", [this]() {
-                    return emp::to_string(update_count);
-                }
-            );
-            panel << values;
-        }
-
+  void SetupReadoutPanel() {
+    emp::prefab::ReadoutPanel values("Readout Values", 100);
+    values.AddValues(
+      "Organisms", "How many organisms are present", [this]() {
+        return emp::to_string(world->GetNumOrgs());
+      },
+      "NOT solvers", "How many organisms are solving NOT", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().NOT_count);
+      },
+      "NAND solvers", "How many organisms are solving NAND", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().NAND_count);
+      },
+      "AND solvers", "How many organisms are solving AND", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().AND_count);
+      },
+      "ORN solvers", "How many organisms are solving ORN", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().ORN_count);
+      },
+      "OR solvers", "How many organisms are solving OR", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().OR_count);
+      },
+      "ANDN solvers", "How many organisms are solving ANDN", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().ANDN_count);
+      },
+      "NOR solvers", "How many organisms are solving NOR", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().NOR_count);
+      },
+      "XOR solvers", "How many organisms are solving XOR", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().XOR_count);
+      },
+      "EQU solvers", "How many organisms are solving EQU", [this]() {
+        return emp::to_string(world->GetAllTaskSolvers().EQU_count);
+      },
+      "Update step", "Current update step", [this]() {
+        return emp::to_string(update_count);
+      },
+      "Parasites", "How many parasites are present", [this]() {
+        return emp::to_string(world->GetParasiteCountDataNode().GetCurrent());
+      }
+    );
+    panel << values;
+  }
 };
 
-// Instantiate the animator object to start the simulation
-AEAnimator animator;
+BaselineAnimator animator;
 
-/**
- * input: none
- * output: none
- * purpose: Starts the simulation by triggering the animator step.
- */
-int main() { animator.Step(); }
+int main() {
+  emp::Initialize();
+  animator.Step();  // Start paused
+}
