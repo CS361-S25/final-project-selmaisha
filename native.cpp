@@ -37,8 +37,9 @@ int main(int argc, char *argv[]) {
   world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
   //world.SetPopStruct_Mixed();
   for (int i = 0; i < config.NUM_START(); i++) {
-    Organism* new_org = new Organism(&world, 0);
+    Host* new_org = new Host(&world, 0);
     world.Inject(*new_org);
+    //initialize without parasites - they must be added later
   }
 
   // Set up the world grid and data output
@@ -51,6 +52,16 @@ int main(int argc, char *argv[]) {
   for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
+    if (update == 300){
+      std::cout << "Injecting parasites" << std::endl;
+      // Inject parasites into the world
+      for (int i = 0; i < config.NUM_PARASITES(); i++) {
+        Parasite* new_parasite = new Parasite(&world, -1.0);
+        world.Inject(*new_parasite);
+        // Set the parasite's virulence
+        new_parasite->setVirulence(config.VIRULENCE());
+      }
+    }
   }
 
   // Debug info if needed

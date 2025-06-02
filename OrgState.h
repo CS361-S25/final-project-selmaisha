@@ -21,6 +21,7 @@ struct OrgState {
   double points;             ///< Accumulated points used for reproduction decisions
   double age;           ///< Number of updates since last reproduction
   emp::WorldPosition current_location; ///< Current location of the organism in the world
+  bool isParasite = false; ///< Flag indicating if the organism is a parasite
 
   // Task completion flags
   bool completed_NOT = false;

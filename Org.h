@@ -19,9 +19,10 @@ public:
    * output: Organism instance
    * purpose: Initialize organism with a CPU and optional starting points
    */
-  Organism(emp::Ptr<OrgWorld> world, double points = 0.0) : cpu(world) {
+  Organism(emp::Ptr<OrgWorld> world, double points = 0.0, bool isParasite = false) : cpu(world) {
     SetPoints(points);
     cpu.state.age = 0.0;  // Initialize the last input index
+    cpu.state.isParasite = isParasite;  // Set if this organism is a parasite
   }
 
   /**
@@ -66,7 +67,7 @@ public:
    */
   void Mutate(double mutation_rate) { cpu.Mutate(mutation_rate); }
 
-  bool IsDead(double max_age) {
+  bool IsDead(double max_age) { //might have to add virtual here
     return cpu.state.age > max_age;
   }
 
@@ -100,6 +101,13 @@ public:
     return "black";
   }
 
+  //assuming for now that only one task can be solved at a time
+  //come back to this later if needed
+  /**
+   * input: none
+   * output: string (name of the solved task)
+   * purpose: Retrieve the name of the task that this organism has completed
+   */
   std::string GetSolvedTask() const {
   if (cpu.state.completed_NOT) return "NOT";
   if (cpu.state.completed_NAND) return "NAND";

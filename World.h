@@ -5,12 +5,10 @@
 #include "emp/data/DataFile.hpp"
 
 #include "Org.h"
+#include "Parasite.h"
+#include "Host.h"
 #include "Task.h"
 #include "ConfigSetup.h"
-// class Parasite;
-
-#include "Parasite.h"
-
 
 
 /**
@@ -19,10 +17,10 @@
  * This class extends emp::World to model an evolutionary simulation in which organisms can solve tasks.
  * It tracks and records data about which tasks have been solved and how many organisms are present.
  */
-class OrgWorld : public emp::World<Organism> {
+class OrgWorld : public emp::World<Host> {
   //emp::Random &random;
   emp::vector<emp::WorldPosition> reproduce_queue;
-  emp::vector<std::shared_ptr<Parasite>> parasite_pop;
+  //emp::vector<std::shared_ptr<Parasite>> parasite_pop;
 
   WorldConfig *config;
   /// List of task pointers that organisms can solve.
@@ -54,7 +52,7 @@ class OrgWorld : public emp::World<Organism> {
   emp::Ptr<emp::DataMonitor<int>> data_node_parasite_count;
 
 
-  int died_of_old_age = 0;
+  int died_of_old_age = 0; //just for testing purposes
 
 
 public:
@@ -65,10 +63,7 @@ public:
    * purpose: Constructor that initializes the world with configuration and RNG.
    */
   OrgWorld(emp::Random &_random, WorldConfig *_config) 
-  : emp::World<Organism>(_random), config(_config){
-    parasite_pop.resize(GetSize());
-    //loop over tasks and set the reward
-  }
+  : emp::World<Host>(_random), config(_config){  }
 
   /**
    * input: none
@@ -107,7 +102,7 @@ public:
     return config->MUTATION_RATE();
   }
 
-    bool IsParasite(size_t id) const {
+  /* bool IsParasite(size_t id) const {
     return id < parasite_pop.size() && parasite_pop[id] != nullptr;
   }
 
@@ -117,15 +112,44 @@ public:
 
   void PlaceParasite(std::shared_ptr<Parasite> parasite, size_t id) {
     parasite_pop[id] = parasite;
-  }
+  } */
 
+  /* void InjectParasite(Parasite parasite) {
+    // Find an empty slot in the parasite population
+    for (size_t i = 0; i < parasite_pop.size(); ++i) {
+      if (parasite_pop[i] == nullptr) {
+        parasite_pop[i] = std::make_shared<Parasite>(parasite);
+        return;
+      }
+    }
+    // If no empty slot found, resize the vector and add the new parasite
+    parasite_pop.push_back(std::make_shared<Parasite>(parasite));
+  } */
 
-  void RemoveParasite(size_t id) {
+  /* void RemoveParasite(size_t id) {
     if (id < parasite_pop.size()) {
       parasite_pop[id] = nullptr;
     }
-  }
+  } */
 
+  //REWRITE INJECT AND REMOVE PARASITES HERE
+  //- Inject: create a new, find a host and infect it
+  //- Remove: remove the parasite from the host and delete it
+
+  void InjectParasite(Parasite *parasite) {
+    // Find an empty slot in the population
+    for (size_t i = 0; i < pop.size(); ++i) {
+      if (!IsOccupied(i)) {
+        if (!pop[i].HasParasite()) {
+          // If the slot is occupied by a host, infect it with the parasite
+          pop[i]->SetParasite(parasite);
+          return;
+        }
+      }
+    }
+    // If no empty slot found, resize the vector and add the new parasite
+    pop.push_back(parasite);
+  }
 
   //a simple struct to store the number of organisms solving each task
   struct TaskSolverCounts {
@@ -165,15 +189,14 @@ public:
     return task_solvers;
   }
 
-
   emp::DataMonitor<int>& GetParasiteCountDataNode() {
     if (!data_node_parasite_count) {
       data_node_parasite_count.New();
       OnUpdate([this](size_t) {
         data_node_parasite_count->Reset();
         int count = 0;
-        for (auto& p : parasite_pop) {
-          if (p) ++count;
+        for (auto& h : pop) {
+          if (h.HasParasite()) ++count;
         }
         data_node_parasite_count->AddDatum(count);
       });
@@ -345,11 +368,11 @@ public:
     return *data_node_EQU_count;
   }
 
-  std::string GetTaskAt(size_t idx) {
+  /* std::string GetTaskAt(size_t idx) {
     auto org_ptr = GetOrgPtr(idx);
     if (org_ptr) return org_ptr->GetSolvedTask(); // Or however you track the task name
     return "";
-  }
+  } */
 
 
   /** 
@@ -373,7 +396,6 @@ public:
     auto & node12 = GetParasiteCountDataNode();
 
     
-    //FIX THESE EXPLANATIONS
     file.AddVar(update, "update", "Update");
     file.AddTotal(node1, "org", "Total number of organisms");
     file.AddTotal(node2, "not", "Number of orgs solving not");
@@ -387,8 +409,6 @@ public:
     file.AddTotal(node10, "equ", "Number of orgs solving equ");
     file.AddTotal(node11, "dead", "Number of orgs that died of old age");
     file.AddTotal(node12, "parasites", "Number of parasites present");
-
-
 
     file.PrintHeaderKeys();
 
@@ -407,7 +427,7 @@ public:
     * Output: bool indicating if that task has been solved by this organism
     * Purpose: Allows parasite to determine if host solved a matching task
     */
-    bool SolvedSameTask(const OrgState & state, const std::string & task_name) const {
+    /* bool SolvedSameTask(const OrgState & state, const std::string & task_name) const {
       if (task_name == "NOT")  return state.completed_NOT;
       if (task_name == "NAND") return state.completed_NAND;
       if (task_name == "AND")  return state.completed_AND;
@@ -418,6 +438,34 @@ public:
       if (task_name == "XOR")  return state.completed_XOR;
       if (task_name == "EQU")  return state.completed_EQU;
       return false;  // 
+    } */
+
+    bool SolvedSameTask(Host & org, Parasite & parasite) {
+      const OrgState & host_state = org.GetCPU().state;
+      const OrgState & parasite_state = parasite.GetCPU().state;
+
+      bool result = false;
+
+      if (host_state.completed_NOT && parasite_state.completed_NOT) {
+        result = true;
+      } else if (host_state.completed_NAND && parasite_state.completed_NAND) {
+        result = true;
+      } else if (host_state.completed_AND && parasite_state.completed_AND) {
+        result = true;
+      } else if (host_state.completed_ORN && parasite_state.completed_ORN) {
+        result = true;
+      } else if (host_state.completed_OR && parasite_state.completed_OR) {
+        result = true;
+      } else if (host_state.completed_ANDN && parasite_state.completed_ANDN) {
+        result = true;
+      } else if (host_state.completed_NOR && parasite_state.completed_NOR) {
+        result = true;
+      } else if (host_state.completed_XOR && parasite_state.completed_XOR) {
+        result = true;
+      } else if (host_state.completed_EQU && parasite_state.completed_EQU) {
+        result = true;
+      }
+      return result;
     }
 
   /**
@@ -426,22 +474,33 @@ public:
    * Purpose: Update the world by running each organism and handling reproduction
    */
   void Update() {
-    emp::World<Organism>::Update();
+    emp::World<Host>::Update();
     double mutation_rate = config->MUTATION_RATE();
 
     //Process each organism
     emp::vector<size_t> schedule = emp::GetPermutation(GetRandom(), GetSize());
+    
     for (int i : schedule) {
       if (!IsOccupied(i)) { continue; }
       pop[i]->Process(*this, i);
+
+      //check if parasite survived the cycle
+      if (pop[i]->HasParasite()) {
+        double points = pop[i]->GetParasite().GetPoints();
+        if (points < -0.0) {
+          // Parasite is dead, remove it
+          pop[i]->RemoveParasite();
+        }
+      }
     }
 
-    // Parasite processing seperate for now
+    /* // Parasite processing seperate for now
     for (int i : schedule) {
       if (!IsParasite(i)) continue;
       auto parasite = GetParasite(i);
       if (!IsOccupied(i)) continue;
 
+      //logic issue I think - checking for task in host twice, not parasite
       auto org_ptr = GetOrgPtr(i);
       auto host_state = org_ptr->GetCPU().state;
       std::string task_name = org_ptr->GetSolvedTask();
@@ -450,15 +509,28 @@ public:
         parasite->AddPoints(GetVirulence());
         parasite->SetLastTask(task_name);
       }
+    } */
+
+    for (int i : schedule){
+      if (!IsOccupied(i)) { continue; }
+      Host & host = *pop[i];
+      if (!host.HasParasite()) { continue; } // Skip if no parasite
+      auto & parasite = host.GetParasite();
+      if (SolvedSameTask(host, parasite)) {
+        parasite.AddPoints(GetVirulence()*GetReward());
+        host->AddPoints(-GetVirulence()*GetReward()); // Host loses points
+      }
     }
+
+
 
     //Time to allow reproduction for any organisms that ran the reproduce instruction
     for (emp::WorldPosition location : reproduce_queue) {
       if (!IsOccupied(location)) {
         return;
       }
-      auto & org = pop[location.GetIndex()];
-      std::optional<Organism> offspring =
+      Host & org = pop[location.GetIndex()];
+      std::optional<Host> offspring =
           org->CheckReproduction(mutation_rate);
       if (offspring.has_value()) {        
         DoBirth(offspring.value(), location.GetIndex());
@@ -479,11 +551,11 @@ public:
     }
   }
 
-  bool IsDead(emp::WorldPosition location) {
+  bool IsDeadOrg(emp::WorldPosition location) {
     return pop[location.GetIndex()]->IsDead(config->LIFE_SPAN());
   }
 
-  double GetVirulence() const { return config->PARASITE_VIRULENCE(); }
+  double GetVirulence() const { return config->VIRULENCE(); }
 
 
   /**
@@ -491,13 +563,19 @@ public:
    * Output: none
    * Purpose: Check if an organism's output solves any task and assign points
    */
+  //DO WE WANT TO HANDLE ALL POINTS IN THE UPDATE, AND JUST CHECK OUTPUTS HERE?
+  //OR CAN WE MAKE THIS APPLY TO ONLY ORGS AND NOT PARASITES?
   void CheckOutput(float output, OrgState &state) {
     for (Task *task : tasks) {
       bool success = task->CheckOutput(output, state.last_inputs);
       if (!success) continue;
       //double newPoints =  config->TASK_REWARD();
       double newPoints = config->REWARD();
-      state.points += newPoints;
+      if (!state.isParasite){
+        //if it is an organism, add points
+        //parasite points are handled later
+        state.points += newPoints;
+      }
       SetTaskVars(task, state);
     }
   }

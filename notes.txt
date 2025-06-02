@@ -1,0 +1,16 @@
+Parasite thoughts:
+- Can each org only solve one task at a time? If not, the task check logic has to change
+- Where do we initialize the parasites? We need to set their virulence
+- Where do we try to kill them? Do we do this right? Do we kill the right ones?
+- CheckOutput - the same one is called for both org and parasite now. 
+    And the checkoutput is called from instructions that I don't really understand so I don't know how to change it
+    If we are working with the same CheckOutput we currently have an issue - parasites will get points for solving tasks
+    that are not the same as the org, and then get points again later.
+    We need the checkoutput call to set the instance variables of the parasite,
+    but not deal w points yet
+- CheckOutput: can we only set task vars there, and then give them points for it later?
+- I have been thinking about injecting parasites. We need to wait a while to do it, because our orgs need to be able to solve tasks first. 
+    Also, parasites must be able to solve a task when they are injected, if not they won't be able to survive to evolve tasks
+- Since parasites can't exist without a host, I think it makes sense to store parasites as org instance variables instead of as a separate vector.
+    Then, we should make a new class host that inherits from org, and is the same but has an extra instance variable parasite. And then we 
+    use this class instead of org everywhere. 
