@@ -86,19 +86,25 @@ private:
   void InitializeWorld() {
     world->SetPopStruct_Grid(num_w_boxes, num_h_boxes);
     world->Resize(num_h_boxes, num_w_boxes);
-    auto p = std::make_shared<Parasite>(world, 0.0);
-    world->PlaceParasite(p, 0);  // Force parasite at cell 0
+    // auto p = std::make_shared<Parasite>(world, 0.0);
+    // world->PlaceParasite(p, 0);  // Force parasite at cell 0
+    emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
+    world->InjectParasite(p);
     for (int i = 0; i < config.NUM_START(); ++i) {
       // auto* new_org = new Organism(world, 0.0);
       // world->Inject(*new_org);
       size_t pos = world->GetRandom().GetUInt(world->GetSize());  
 
       if (world->GetRandom().P(0.8)) {
-        auto* host = new Organism(world, 0.0);
+        // auto* host = new Organism(world, 0.0);
+        auto* host = new Host(world, 0.0);
         world->InjectAt(*host, pos);
       } else {
-        auto p = std::make_shared<Parasite>(world, 0.0);
-        world->PlaceParasite(p, pos);
+        // auto p = std::make_shared<Parasite>(world, 0.0);
+        // world->PlaceParasite(p, pos);
+        emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
+        world->InjectParasite(p);
+
       }
   
 

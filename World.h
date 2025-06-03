@@ -102,9 +102,15 @@ public:
     return config->MUTATION_RATE();
   }
 
+  bool IsParasite(size_t id) const {
+    return IsOccupied(id) && pop[id]->HasParasite();
+  }
+
+
   /* bool IsParasite(size_t id) const {
     return id < parasite_pop.size() && parasite_pop[id] != nullptr;
   }
+  
 
   std::shared_ptr<Parasite> GetParasite(size_t id) const {
     return parasite_pop[id];
@@ -131,6 +137,16 @@ public:
       parasite_pop[id] = nullptr;
     }
   } */
+
+  // void PlaceParasite(std::shared_ptr<Parasite> parasite, size_t id) {
+  //   if (id < pop.size() && IsOccupied(id)) {
+  //     auto host_ptr = pop[id];
+  //     if (!host_ptr->HasParasite()) {
+  //       host_ptr->SetParasite(parasite);
+  //     }
+  //   }
+  // }
+
 
   //REWRITE INJECT AND REMOVE PARASITES HERE
   //- Inject: create a new, find a host and infect it
