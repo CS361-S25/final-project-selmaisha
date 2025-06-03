@@ -25,6 +25,8 @@ public:
     cpu.state.isParasite = isParasite;  // Set if this organism is a parasite
   }
 
+  virtual ~Organism() = default;
+
   /**
    * input: none
    * output: Copy of internal CPU
@@ -75,18 +77,29 @@ public:
     cpu.state.age = 0;
   }
 
+  virtual std::unique_ptr<Organism> Clone() const {
+    return std::make_unique<Organism>(*this);
+}
+
   /**
    * input: double mutation_rate
    * output: optional<Organism> (offspring)
    * purpose: Attempt to create a mutated offspring of this organism
    */
-  std::optional<Organism> CheckReproduction(double mutation_rate) {
+  std::optional<std::unique_ptr<Organism>> CheckReproduction(double mutation_rate) {
+    auto offspring = Clone();        
+    offspring->Reset();
+    offspring->Mutate(mutation_rate);
+    return offspring;
+}
+
+  /* std::optional<Organism> CheckReproduction(double mutation_rate) {
     Organism offspring = *this;
     offspring.Reset();
     offspring.Mutate(mutation_rate);
     return offspring;
     return {};
-  }
+  } */
 
   std::string GetTaskColor() const {
     if (cpu.state.completed_NOT) return "blue";

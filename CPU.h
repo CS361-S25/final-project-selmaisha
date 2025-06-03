@@ -1,3 +1,6 @@
+#ifndef CPU_H
+#define CPU_H
+
 #include "Instructions.h"
 #include "sgpl/algorithm/execute_cpu_n_cycles.hpp"
 #include "sgpl/hardware/Cpu.hpp"
@@ -176,3 +179,5 @@ public:
     }
   }
 };
+
+#endif

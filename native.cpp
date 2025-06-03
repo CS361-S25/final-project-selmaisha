@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
       // Inject parasites into the world
       for (int i = 0; i < config.NUM_PARASITES(); i++) {
         Parasite* new_parasite = new Parasite(&world, -1.0);
-        world.Inject(*new_parasite);
+        world.InjectParasite(new_parasite);
         // Set the parasite's virulence
         new_parasite->setVirulence(config.VIRULENCE());
       }

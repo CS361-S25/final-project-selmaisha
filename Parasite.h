@@ -14,6 +14,8 @@ public:
     Parasite(emp::Ptr<OrgWorld> world, double points = -1.0)
         : Organism(world, points, true) { }
 
+    virtual ~Parasite() = default;
+
     bool IsDead() {
         return GetPoints() < -1.0;  // Parasite is considered dead if points are less than -1
     }
@@ -22,8 +24,12 @@ public:
         return virulence;  // Return the virulence value
     }
 
-    double setVirulence(double new_virulence) {
+    void setVirulence(double new_virulence) {
         virulence = new_virulence;  // Set a new virulence value
+    }
+
+    std::unique_ptr<Organism> Clone() const override {
+        return std::make_unique<Parasite>(*this);
     }
 };
 

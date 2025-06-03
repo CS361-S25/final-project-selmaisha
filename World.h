@@ -136,19 +136,17 @@ public:
   //- Inject: create a new, find a host and infect it
   //- Remove: remove the parasite from the host and delete it
 
-  void InjectParasite(Parasite *parasite) {
+  void InjectParasite(emp::Ptr<Parasite> parasite) {
     // Find an empty slot in the population
     for (size_t i = 0; i < pop.size(); ++i) {
-      if (!IsOccupied(i)) {
-        if (!pop[i].HasParasite()) {
+      if (IsOccupied(i)) {
+        if (!pop[i]->HasParasite()) {
           // If the slot is occupied by a host, infect it with the parasite
           pop[i]->SetParasite(parasite);
           return;
         }
       }
     }
-    // If no empty slot found, resize the vector and add the new parasite
-    pop.push_back(parasite);
   }
 
   //a simple struct to store the number of organisms solving each task
@@ -195,8 +193,10 @@ public:
       OnUpdate([this](size_t) {
         data_node_parasite_count->Reset();
         int count = 0;
-        for (auto& h : pop) {
-          if (h.HasParasite()) ++count;
+        for (size_t i = 0; i < pop.size(); ++i) {
+          if (IsOccupied(i) && pop[i]->HasParasite()) {
+            ++count;
+          }
         }
         data_node_parasite_count->AddDatum(count);
       });
@@ -440,9 +440,9 @@ public:
       return false;  // 
     } */
 
-    bool SolvedSameTask(Host & org, Parasite & parasite) {
-      const OrgState & host_state = org.GetCPU().state;
-      const OrgState & parasite_state = parasite.GetCPU().state;
+    bool SolvedSameTask(emp::Ptr<Host> org, emp::Ptr<Parasite> parasite) {
+      const OrgState & host_state = org->GetCPU().state;
+      const OrgState & parasite_state = parasite->GetCPU().state;
 
       bool result = false;
 
@@ -486,7 +486,7 @@ public:
 
       //check if parasite survived the cycle
       if (pop[i]->HasParasite()) {
-        double points = pop[i]->GetParasite().GetPoints();
+        double points = pop[i]->GetParasite()->GetPoints();
         if (points < -0.0) {
           // Parasite is dead, remove it
           pop[i]->RemoveParasite();
@@ -513,12 +513,12 @@ public:
 
     for (int i : schedule){
       if (!IsOccupied(i)) { continue; }
-      Host & host = *pop[i];
-      if (!host.HasParasite()) { continue; } // Skip if no parasite
-      auto & parasite = host.GetParasite();
+      emp::Ptr<Host> host = pop[i];
+      if (!host->HasParasite()) { continue; } // Skip if no parasite
+      emp::Ptr<Parasite> parasite = host->GetParasite();
       if (SolvedSameTask(host, parasite)) {
-        parasite.AddPoints(GetVirulence()*GetReward());
-        host->AddPoints(-GetVirulence()*GetReward()); // Host loses points
+        parasite->AddPoints(GetVirulence() * GetReward());
+        host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
       }
     }
 
@@ -529,12 +529,15 @@ public:
       if (!IsOccupied(location)) {
         return;
       }
-      Host & org = pop[location.GetIndex()];
-      std::optional<Host> offspring =
+      emp::Ptr<Host> org = pop[location.GetIndex()];
+      std::optional<std::unique_ptr<Organism>> offspring =
           org->CheckReproduction(mutation_rate);
-      if (offspring.has_value()) {        
-        DoBirth(offspring.value(), location.GetIndex());
-        org->ResetAge(); // Reset the parent organism after reproduction
+      if (offspring.has_value()) {
+        Host* host_offspring = dynamic_cast<Host*>(offspring.value().get());
+        if (host_offspring != nullptr) {
+          DoBirth(*host_offspring, location.GetIndex());
+          org->ResetAge();
+        }
       }
     }
     reproduce_queue.clear();

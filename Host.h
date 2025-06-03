@@ -9,17 +9,22 @@
 
 class Host : public Organism {
     private:
-    Parasite* parasite = nullptr;  // Parasite that interacts with the host
+    emp::Ptr<Parasite> parasite = nullptr;  // Parasite that interacts with the host
 
     public:
     Host(emp::Ptr<OrgWorld> world, double points = 0.0)
         : Organism(world, points) { };
 
-    void SetParasite(Parasite *p) {
+    ~Host() {
+        delete parasite;
+        parasite = nullptr;
+    }
+
+    void SetParasite(emp::Ptr<Parasite> p) {
         parasite = p;  // Set the parasite for this host
     }
 
-    Parasite GetParasite() const {
+    emp::Ptr<Parasite> GetParasite() const {
         return parasite;  // Get the parasite associated with this host
     }
 
@@ -28,7 +33,14 @@ class Host : public Organism {
     }
 
     void RemoveParasite() {
+        parasite.Delete();
         parasite = nullptr;  // Remove the parasite from this host
+    }
+
+    std::unique_ptr<Organism> Clone() const override {
+        auto new_host = std::make_unique<Host>(*this);
+        new_host->parasite = nullptr;  // Ensure clone starts with no parasite
+        return new_host;
     }
 
 };
