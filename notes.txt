@@ -4,3 +4,5 @@ Issue thoughts:
 - Also, why are there parasites right away - they should be initialized later. Ask Isha about how that works currently
 - I want to reset the task flags after every single update - because an organism CAN solve a task doesn't mean it does it.
 - I want to set a probability that orgs are initialized with nand - shoudld we also give fewer points for nand to encourage diversity
+- I think a mixed grid is more interesting
+- I think we should create a random schedule of the hosts when we loop over places we can inject parasites

@@ -84,7 +84,8 @@ private:
   }
 
   void InitializeWorld() {
-    world->SetPopStruct_Grid(num_w_boxes, num_h_boxes);
+    //world->SetPopStruct_Grid(num_w_boxes, num_h_boxes);
+    world->SetPopStruct_Mixed();
     world->Resize(num_h_boxes, num_w_boxes);
     // auto p = std::make_shared<Parasite>(world, 0.0);
     // world->PlaceParasite(p, 0);  // Force parasite at cell 0

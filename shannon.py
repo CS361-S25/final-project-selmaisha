@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
-datafile = pd.read_csv("num100000pop10rew10size80age1000.csv")
+#datafile = pd.read_csv("num100000pop10rew10size80age1000.csv")
+datafile = pd.read_csv("worlddata.csv")
 
 #raw_pheno =  [100000,6335,11,0,629,0,0,733,0,0,1042,5461]
 #set raw_pheno to the last row of the datafile
