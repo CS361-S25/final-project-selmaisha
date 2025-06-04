@@ -35,6 +35,7 @@ class CPU {
 public:
   OrgState state;
 
+  
   /**
    * Constructs a new CPU for an ancestor organism with a random genome.
    */
@@ -89,6 +90,15 @@ public:
     program.ApplyPointMutations(mutation_rate);
     InitializeState();
   }
+
+  void LoadProgram(const sgpl::Program<Spec>& prog) {
+    program = prog;
+    InitializeState();  // resets anchors, seeds input, etc.
+  }
+  // OrgState& GetState() { return state; }
+  // const OrgState& GetState() const { return state; }
+
+
 
   /**
    * Input: None

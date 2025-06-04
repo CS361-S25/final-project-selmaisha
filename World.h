@@ -459,6 +459,8 @@ public:
     bool SolvedSameTask(emp::Ptr<Host> org, emp::Ptr<Parasite> parasite) {
       const OrgState & host_state = org->GetCPU().state;
       const OrgState & parasite_state = parasite->GetCPU().state;
+      // const OrgState & parasite_state = parasite->GetCPU().GetState();
+
 
       bool result = false;
 
@@ -503,7 +505,7 @@ public:
       //check if parasite survived the cycle
       if (pop[i]->HasParasite()) {
         double points = pop[i]->GetParasite()->GetPoints();
-        if (points < -0.0) {
+        if (points < -5.0) { //or should it be 0
           // Parasite is dead, remove it
           pop[i]->RemoveParasite();
         }

@@ -33,6 +33,7 @@ public:
    * purpose: Access the organism's CPU object
    */
   CPU GetCPU() { return cpu; }
+  const CPU& GetCPU() const { return cpu; }
 
   /**
    * input: double _in (points)

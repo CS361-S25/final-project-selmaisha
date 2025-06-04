@@ -88,8 +88,8 @@ private:
     world->Resize(num_h_boxes, num_w_boxes);
     // auto p = std::make_shared<Parasite>(world, 0.0);
     // world->PlaceParasite(p, 0);  // Force parasite at cell 0
-    emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
-    world->InjectParasite(p);
+    // emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
+    // world->InjectParasite(p);
     for (int i = 0; i < config.NUM_START(); ++i) {
       // auto* new_org = new Organism(world, 0.0);
       // world->Inject(*new_org);
@@ -132,11 +132,23 @@ private:
           if (org_ptr) {
             std::string color = org_ptr->GetTaskColor();  
             canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE - 1, RECT_SIDE - 1, color, "black");
-          }if (world->IsParasite(org_num)) {
+          }
+          if (org_ptr->HasParasite()) {
+            auto parasite = org_ptr->GetParasite();
+            // std::string GetTaskColor() const {
+            // if (state.completed_EQU) return "purple";
+            //     return "black";  // fallback color
+            //   }
+            std::string color = parasite->GetTaskColor();
             canvas.Circle(x * RECT_SIDE + RECT_SIDE / 2,
                           y * RECT_SIDE + RECT_SIDE / 2,
-                          RECT_SIDE / 4, "red");
+                          RECT_SIDE / 4, color, "red");
           }
+          // if (world->IsParasite(org_num)) {
+          //   canvas.Circle(x * RECT_SIDE + RECT_SIDE / 2,
+          //                 y * RECT_SIDE + RECT_SIDE / 2,
+          //                 RECT_SIDE / 4, "red");
+          // }
         } else {
           canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE - 1, RECT_SIDE - 1, "white", "black");
         }
