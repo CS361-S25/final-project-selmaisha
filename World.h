@@ -106,52 +106,6 @@ public:
     return IsOccupied(id) && pop[id]->HasParasite();
   }
 
-
-  /* bool IsParasite(size_t id) const {
-    return id < parasite_pop.size() && parasite_pop[id] != nullptr;
-  }
-  
-
-  std::shared_ptr<Parasite> GetParasite(size_t id) const {
-    return parasite_pop[id];
-  }
-
-  void PlaceParasite(std::shared_ptr<Parasite> parasite, size_t id) {
-    parasite_pop[id] = parasite;
-  } */
-
-  /* void InjectParasite(Parasite parasite) {
-    // Find an empty slot in the parasite population
-    for (size_t i = 0; i < parasite_pop.size(); ++i) {
-      if (parasite_pop[i] == nullptr) {
-        parasite_pop[i] = std::make_shared<Parasite>(parasite);
-        return;
-      }
-    }
-    // If no empty slot found, resize the vector and add the new parasite
-    parasite_pop.push_back(std::make_shared<Parasite>(parasite));
-  } */
-
-  /* void RemoveParasite(size_t id) {
-    if (id < parasite_pop.size()) {
-      parasite_pop[id] = nullptr;
-    }
-  } */
-
-  // void PlaceParasite(std::shared_ptr<Parasite> parasite, size_t id) {
-  //   if (id < pop.size() && IsOccupied(id)) {
-  //     auto host_ptr = pop[id];
-  //     if (!host_ptr->HasParasite()) {
-  //       host_ptr->SetParasite(parasite);
-  //     }
-  //   }
-  // }
-
-
-  //REWRITE INJECT AND REMOVE PARASITES HERE
-  //- Inject: create a new, find a host and infect it
-  //- Remove: remove the parasite from the host and delete it
-
   void InjectParasite(emp::Ptr<Parasite> parasite) {
     // Find an empty slot in the population
     for (size_t i = 0; i < pop.size(); ++i) {
@@ -384,13 +338,6 @@ public:
     return *data_node_EQU_count;
   }
 
-  /* std::string GetTaskAt(size_t idx) {
-    auto org_ptr = GetOrgPtr(idx);
-    if (org_ptr) return org_ptr->GetSolvedTask(); // Or however you track the task name
-    return "";
-  } */
-
-
   /** 
    * Input: optional filename (default "worlddata.csv")
    * Output: Reference to emp::DataFile
@@ -437,24 +384,6 @@ public:
    * Purpose: Provide access to the current population vector
    */
   const pop_t &GetPopulation() { return pop; }
-
-  /**
-    * Input: OrgState &state, task name as string
-    * Output: bool indicating if that task has been solved by this organism
-    * Purpose: Allows parasite to determine if host solved a matching task
-    */
-    /* bool SolvedSameTask(const OrgState & state, const std::string & task_name) const {
-      if (task_name == "NOT")  return state.completed_NOT;
-      if (task_name == "NAND") return state.completed_NAND;
-      if (task_name == "AND")  return state.completed_AND;
-      if (task_name == "ORN")  return state.completed_ORN;
-      if (task_name == "OR")   return state.completed_OR;
-      if (task_name == "ANDN") return state.completed_ANDN;
-      if (task_name == "NOR")  return state.completed_NOR;
-      if (task_name == "XOR")  return state.completed_XOR;
-      if (task_name == "EQU")  return state.completed_EQU;
-      return false;  // 
-    } */
 
     bool SolvedSameTask(emp::Ptr<Host> org, emp::Ptr<Parasite> parasite) {
       const OrgState & host_state = org->GetCPU().state;
@@ -511,23 +440,6 @@ public:
         }
       }
     }
-
-    /* // Parasite processing seperate for now
-    for (int i : schedule) {
-      if (!IsParasite(i)) continue;
-      auto parasite = GetParasite(i);
-      if (!IsOccupied(i)) continue;
-
-      //logic issue I think - checking for task in host twice, not parasite
-      auto org_ptr = GetOrgPtr(i);
-      auto host_state = org_ptr->GetCPU().state;
-      std::string task_name = org_ptr->GetSolvedTask();
-
-      if (SolvedSameTask(host_state, task_name)) {
-        parasite->AddPoints(GetVirulence());
-        parasite->SetLastTask(task_name);
-      }
-    } */
 
     for (int i : schedule){
       if (!IsOccupied(i)) { continue; }
@@ -589,7 +501,17 @@ public:
   void CheckOutput(float output, OrgState &state) {
     for (Task *task : tasks) {
       bool success = task->CheckOutput(output, state.last_inputs);
-      if (!success) continue;
+      if (!success) {
+        //state.points += 1;
+        continue;
+      }
+        std::cout << "Org at: " << state.current_location.GetIndex() << std::endl;
+        std::cout << "input1: " << state.last_inputs[0] << std::endl;
+        std::cout << "input2: " << state.last_inputs[1] << std::endl;
+        std::cout << "input3: " << state.last_inputs[2] << std::endl;
+        std::cout << "input4: " << state.last_inputs[3] << std::endl;
+        std::cout << "output: " << output << std::endl;
+        std::cout << "Task solved: " << task->name() << std::endl;
       //double newPoints =  config->TASK_REWARD();
       double newPoints = config->REWARD();
       if (!state.isParasite){
@@ -599,6 +521,7 @@ public:
       }
       SetTaskVars(task, state);
     }
+    std::cout << "Points after task check: " << state.points << std::endl;
   }
 
   /**

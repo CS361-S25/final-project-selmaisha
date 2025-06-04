@@ -48,11 +48,17 @@ int main(int argc, char *argv[]) {
   world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/100);
   //world.SetupOrgFile("worlddata.csv").SetTimingRepeat(40);
 
+/*   //HAVE SOMETHING LIKE THIS TO INITIALIZE THEM WITH A TASK
+  // Pseudocode
+  sgpl::Program<Spec> nand_prog;
+  // Fill nand_prog with instructions that solve NAND
+  parasite->GetCPU().SetProgram(nand_prog); */
+
   // Run the simulation for the specified number of updates
   for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
-    if (update == 300){
+    if (update == 3000){
       std::cout << "Injecting parasites" << std::endl;
       // Inject parasites into the world
       for (int i = 0; i < config.NUM_PARASITES(); i++) {

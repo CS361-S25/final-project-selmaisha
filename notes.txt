@@ -1,3 +1,6 @@
 Issue thoughts:
 - Can each org only solve one task at a time? If not, the task check logic has to change
-
+    - I think this is a faulty assumption. So task check (both parasites and color - give color to represent the hardest task) need to change
+- Also, why are there parasites right away - they should be initialized later. Ask Isha about how that works currently
+- I want to reset the task flags after every single update - because an organism CAN solve a task doesn't mean it does it.
+- I want to set a probability that orgs are initialized with nand - shoudld we also give fewer points for nand to encourage diversity

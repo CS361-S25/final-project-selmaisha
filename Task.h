@@ -39,7 +39,7 @@ public:
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && ~(inputs[i] & inputs[j]) == output) {
+                if ((i!=j) && ~(inputs[i] & inputs[j]) == output) {
                     return true;
                 }
             }
@@ -56,7 +56,7 @@ public:
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && (inputs[i] & inputs[j]) == output) {
+                if ((i!=j) && (inputs[i] & inputs[j]) == output) {
                     return true;
                 }
             }
@@ -66,13 +66,14 @@ public:
 
     std::string name() const override { return "AND"; }
 };
+
 class ORNTask : public Task {
 public:
 
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && (inputs[i] | inputs[j]) == output) {
+                if ((i!=j) && (inputs[i] | ~inputs[j]) == output) {
                     return true;
                 }
             }
@@ -82,13 +83,14 @@ public:
 
     std::string name() const override { return "ORN"; }
 };
+
 class ORTask : public Task {
 public:
 
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && (inputs[i] | inputs[j]) == output) {
+                if ((i!=j) && (inputs[i] | inputs[j]) == output) {
                     return true;
                 }
             }
@@ -98,13 +100,14 @@ public:
 
     std::string name() const override { return "OR"; }
 };
+
 class ANDNTask : public Task {
 public:
 
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && (~inputs[i] & inputs[j]) == output) {
+                if ((i!=j) && (inputs[i] & ~inputs[j]) == output) {
                     return true;
                 }
             }
@@ -114,13 +117,14 @@ public:
 
     std::string name() const override { return "ANDN"; }
 };
+
 class NORTask : public Task {
 public:
 
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && (~inputs[i] | ~inputs[j]) == output) {
+                if ((i!=j) && ~(inputs[i] | inputs[j]) == output) {
                     return true;
                 }
             }
@@ -130,6 +134,7 @@ public:
 
     std::string name() const override { return "NOR"; }
 };
+
 class XORTask : public Task {
 public:
 
@@ -137,7 +142,7 @@ public:
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                if (i != j && (inputs[i] ^ inputs[j]) == output) {
+                if ((i!=j) && (inputs[i] ^ inputs[j]) == output) {
                     return true;
                 }
             }
@@ -153,8 +158,10 @@ public:
 
     bool CheckOutput(uint32_t output, uint32_t inputs[4]) override {
         for (int i = 0; i < 4; ++i) {
-            if (inputs[i] == output) {
-                return true;
+            for (int j = 0; j < 4; ++j){
+                if ((i!=j) && ~(inputs[i] ^ inputs[j]) == output) {
+                    return true;
+                }
             }
         }
         return false;

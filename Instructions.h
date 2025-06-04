@@ -59,7 +59,7 @@ struct ReproduceInstruction {
   static void run(sgpl::Core<Spec> &core, const sgpl::Instruction<Spec> &inst,
                   const sgpl::Program<Spec> &,
                   typename Spec::peripheral_t &state) noexcept {
-    if (state.points > 20) {
+    if (state.points >= 20) {
       state.world->ReproduceOrg(state.current_location);
       state.points -= 0;
     }
