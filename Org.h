@@ -71,7 +71,7 @@ public:
   void Mutate(double mutation_rate) { cpu.Mutate(mutation_rate); }
 
   bool IsDead(double max_age) { //might have to add virtual here
-    return cpu.state.age > max_age;
+    return (cpu.state.age > max_age && cpu.state.points<=0.0);
   }
 
   void ResetAge() {

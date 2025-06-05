@@ -94,8 +94,11 @@ private:
     for (int i = 0; i < config.NUM_START(); ++i) {
       // auto* new_org = new Organism(world, 0.0);
       // world->Inject(*new_org);
-      size_t pos = world->GetRandom().GetUInt(world->GetSize());  
+      size_t pos = world->GetRandom().GetUInt(world->GetSize());
+      Host* host = new Host(world, 0);
+      world->InjectAt(*host, pos);
 
+      /* 
       if (world->GetRandom().P(0.8)) {
         // auto* host = new Organism(world, 0.0);
         auto* host = new Host(world, 0.0);
@@ -106,10 +109,9 @@ private:
         emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
         world->InjectParasite(p);
 
-      }
-  
-
+      } */
     }
+    
     update_count = 0;
     Draw();
   }

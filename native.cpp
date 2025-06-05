@@ -34,13 +34,19 @@ int main(int argc, char *argv[]) {
   sgpl::tlrand.Get().ResetSeed(config.SEED());
 
   // Inject starting organisms into the world
-  world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
-  //world.SetPopStruct_Mixed();
+  //world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
+  world.SetPopStruct_Mixed();
   for (int i = 0; i < config.NUM_START(); i++) {
     Host* new_org = new Host(&world, 0);
     world.Inject(*new_org);
     //initialize without parasites - they must be added later
   }
+  //WHEN I INITIATE LIKE ABOVE IT SURVIVES; IF I DO LIKE BELOW IT GOES EXTINCT...
+/*   for (int i = 0; i < config.NUM_START(); ++i) {
+    size_t pos = world.GetRandom().GetUInt(world.GetSize());
+    Host* host = new Host(&world, 0);
+    world.InjectAt(*host, pos);
+  } */
 
   // Set up the world grid and data output
   world.Resize(config.NUM_BOXES(), config.NUM_BOXES());

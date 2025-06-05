@@ -6,3 +6,16 @@ Issue thoughts:
 - I want to set a probability that orgs are initialized with nand - shoudld we also give fewer points for nand to encourage diversity
 - I think a mixed grid is more interesting
 - I think we should create a random schedule of the hosts when we loop over places we can inject parasites
+- Should we kill only those hosts with 0 points even though they have gone a while without reproducing?
+    - I implemented this
+- I ran web with the following settings:
+    - numstart 30
+    - mutrate 0.02
+    - reward 10
+    - numboxes 32
+    - lifespan 1000
+    I then let it run - it was completely stationary until about 800 updates, when it started moving. Why is this happening?
+- In native now there are two ways of initially injecting organisms. In theory I think they should be the same, but one works and the other leads to a population that dies out
+    I don't know why this is happening. In web we use the second method and it works well so this is confusing
+    It might be because the random injection might overwrite other orgs, so we can fix that. But for now the sequential one works well.
+- I ended up setting popstruct.mixed instead of grid so organisms dont keep reproducing on top of their old offspring which just kills of task solvers
