@@ -48,6 +48,12 @@ public:
         return std::make_unique<Parasite>(*this);
     }
 
+    void Process(OrgWorld& world, size_t id) override {
+        std::cout << "[DEBUG] Parasite at host " << id << " running CPU" << std::endl;
+        Organism::Process(world, id);
+    }
+
+
 };
 
 

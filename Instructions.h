@@ -31,6 +31,7 @@ struct IOInstruction {
 
   static std::string name() { return "IO"; }
   static size_t prevalence() { return 1; }
+  
 };
 
 struct NandInstruction {

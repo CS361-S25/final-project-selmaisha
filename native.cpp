@@ -4,6 +4,39 @@
 #include "World.h"
 #include "ConfigSetup.h"
 
+
+
+// sgpl::Program<Spec> BuildNANDProgram() {
+//     sgpl::Program<Spec> prog;
+//     prog.PushInst(NandInstruction{}, 0, 1, 2); // r0 = ~(r1 & r2)
+//     prog.PushInst(IOInstruction{}, 0);         
+//     prog.PushInst(ReproduceInstruction{});     
+//     return prog;
+//   }
+
+
+// const std::string nand_prog_src = R"(
+// NAND 0 1 2
+// IO 0
+// REPRODUCE
+// )";
+
+// sgpl::Program<Spec> BuildNANDProgram() {
+//    sgpl::Program<Spec> prog(nand_prog_src);
+//    return prog;
+// }
+
+sgpl::Program<Spec> BuildNANDProgram() {
+  const std::string nand_prog_src = R"(
+  NAND 0 1 2
+  IO 0
+  REPRODUCE
+  )";
+  return sgpl::Program<Spec>(nand_prog_src); // This parses the string
+}
+
+
+
 /**
  * input: argc (argument count), argv (argument values)
  * output: none (program side-effects: config file read/write, organism world initialized and updated)
@@ -33,11 +66,17 @@ int main(int argc, char *argv[]) {
   // Ensure SignalGP-Lite uses the same seed
   sgpl::tlrand.Get().ResetSeed(config.SEED());
 
+  
+
   // Inject starting organisms into the world
   //world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
   world.SetPopStruct_Mixed();
   for (int i = 0; i < config.NUM_START(); i++) {
     Host* new_org = new Host(&world, 0);
+    // if (random.P(0.5)) {
+    //   new_org->GetCPU().LoadProgram(BuildNANDProgram());
+    // }
+
     world.Inject(*new_org);
     //initialize without parasites - they must be added later
   }
@@ -60,19 +99,58 @@ int main(int argc, char *argv[]) {
   // Fill nand_prog with instructions that solve NAND
   parasite->GetCPU().SetProgram(nand_prog); */
 
+  
+
   // Run the simulation for the specified number of updates
   for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
-    if (update == 3000){
+    if (update == 1500){
       std::cout << "Injecting parasites" << std::endl;
       // Inject parasites into the world
-      for (int i = 0; i < config.NUM_PARASITES(); i++) {
-        Parasite* new_parasite = new Parasite(&world, -1.0);
-        world.InjectParasite(new_parasite);
-        // Set the parasite's virulence
-        new_parasite->setVirulence(config.VIRULENCE());
-      }
+
+      std::vector<size_t> eligible_hosts;
+
+  for (size_t i = 0; i < world.GetSize(); ++i) {
+    if (!world.IsOccupied(i)) continue;
+    auto& host = world.GetOrg(i);
+    if (!host) continue;
+
+    // Check if this host has solved a task
+    const auto& state = host->GetCPU().state;
+    if (state.completed_NOT || state.completed_NAND || state.completed_AND ||
+        state.completed_ORN || state.completed_OR || state.completed_ANDN ||
+        state.completed_NOR || state.completed_XOR || state.completed_EQU) {
+      eligible_hosts.push_back(i);
+    }
+  }
+
+  emp::Random& rnd = world.GetRandom();
+  for (int i = 0; i < config.NUM_PARASITES() && !eligible_hosts.empty(); ++i) {
+    size_t index = rnd.GetUInt(eligible_hosts.size());
+    size_t host_pos = eligible_hosts[index];
+    eligible_hosts.erase(eligible_hosts.begin() + index); // avoid re-using
+
+    Parasite* new_parasite = new Parasite(&world, -1.0);
+    new_parasite->GetCPU().LoadProgram(BuildNANDProgram());
+    new_parasite->setVirulence(config.VIRULENCE());
+
+    // Inject directly into the host
+    Host* host = world.GetOrgPtr(host_pos);
+    if (host && !host->HasParasite()) {
+      host->SetParasite(emp::Ptr<Parasite>(new_parasite));
+      world.AddParasiteToTracking(new_parasite); // if needed
+    } else {
+      delete new_parasite; // prevent memory leak
+    }
+  }
+      // for (int i = 0; i < config.NUM_PARASITES(); i++) {
+      //   Parasite* new_parasite = new Parasite(&world, -1.0);
+      //   new_parasite->GetCPU().LoadProgram(BuildNANDProgram());
+      //   world.InjectParasite(new_parasite);
+      //   // Set the parasite's virulence
+      //   new_parasite->setVirulence(config.VIRULENCE());
+      // }
     }
   }
 

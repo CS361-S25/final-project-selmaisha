@@ -11,6 +11,8 @@
 #include "emp/prefab/ReadoutPanel.hpp"
 #include "emp/math/Random.hpp"
 
+
+
 #include "ConfigSetup.h"
 #include "World.h"
 #include "Parasite.h"
@@ -29,6 +31,8 @@ class BaselineAnimator : public emp::web::Animate {
   const double height = num_h_boxes * RECT_SIDE;
   int update_count = 0;
 
+  bool parasites_injected = false;
+
   emp::Ptr<emp::Random> random;
   emp::Ptr<OrgWorld> world;
 
@@ -43,10 +47,22 @@ public:
     SetupCanvasAndControls();
     SetupConfigPanel();
     InitializeWorld();
+    
     SetupReadoutPanel();
   }
 
   void DoFrame() override {
+    if (update_count == 1500 && !parasites_injected) {
+      std::cout << "Injecting parasites at update 3000" << std::endl;
+
+      for (int i = 0; i < config.NUM_PARASITES(); i++) {
+        auto* parasite = new Parasite(world, -1.0);
+        parasite->setVirulence(config.VIRULENCE());
+        world->InjectParasite(parasite);
+      }
+
+      parasites_injected = true;
+    }
     world->Update();
     update_count++;
     Draw();
@@ -64,6 +80,7 @@ private:
       ResetWorldFromConfig();
     }, "Apply Settings");
   }
+
 
   void ApplyConfigFromArgs() {
     auto specs = emp::ArgManager::make_builtin_specs(&config);
@@ -97,6 +114,7 @@ private:
       size_t pos = world->GetRandom().GetUInt(world->GetSize());
       Host* host = new Host(world, 0);
       world->InjectAt(*host, pos);
+
 
       /* 
       if (world->GetRandom().P(0.8)) {
@@ -198,13 +216,43 @@ private:
       },
       "Parasites", "How many parasites are present", [this]() {
         return emp::to_string(world->GetParasiteCountDataNode().GetCurrent());
-      }
+      },
+
+      // Parasite task counts
+    "Parasite NOT", "Parasites solving NOT", [this]() {
+      return emp::to_string(world->GetParasiteNOTCountDataNode().GetCurrent());
+    },
+    "Parasite NAND", "Parasites solving NAND", [this]() {
+      return emp::to_string(world->GetParasiteNANDCountDataNode().GetCurrent());
+    },
+    "Parasite AND", "Parasites solving AND", [this]() {
+      return emp::to_string(world->GetParasiteANDCountDataNode().GetCurrent());
+    },
+    "Parasite ORN", "Parasites solving ORN", [this]() {
+      return emp::to_string(world->GetParasiteORNCountDataNode().GetCurrent());
+    },
+    "Parasite OR", "Parasites solving OR", [this]() {
+      return emp::to_string(world->GetParasiteORCountDataNode().GetCurrent());
+    },
+    "Parasite ANDN", "Parasites solving ANDN", [this]() {
+      return emp::to_string(world->GetParasiteANDNCountDataNode().GetCurrent());
+    },
+    "Parasite NOR", "Parasites solving NOR", [this]() {
+      return emp::to_string(world->GetParasiteNORCountDataNode().GetCurrent());
+    },
+    "Parasite XOR", "Parasites solving XOR", [this]() {
+      return emp::to_string(world->GetParasiteXORCountDataNode().GetCurrent());
+    },
+    "Parasite EQU", "Parasites solving EQU", [this]() {
+      return emp::to_string(world->GetParasiteEQUCountDataNode().GetCurrent());
+    }
     );
     panel << values;
   }
 };
 
 BaselineAnimator animator;
+
 
 int main() {
   emp::Initialize();

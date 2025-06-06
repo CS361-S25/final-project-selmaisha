@@ -82,6 +82,18 @@ public:
     return std::make_unique<Organism>(*this);
 }
 
+  void ClearTaskFlags() {
+    cpu.state.completed_NOT = false;
+    cpu.state.completed_NAND = false;
+    cpu.state.completed_AND = false;
+    cpu.state.completed_ORN = false;
+    cpu.state.completed_OR = false;
+    cpu.state.completed_ANDN = false;
+    cpu.state.completed_NOR = false;
+    cpu.state.completed_XOR = false;
+    cpu.state.completed_EQU = false;
+  }
+
   /**
    * input: double mutation_rate
    * output: optional<Organism> (offspring)
@@ -102,16 +114,16 @@ public:
     return {};
   } */
 
-  std::string GetTaskColor() const {
-    if (cpu.state.completed_NOT) return "blue";
-    if (cpu.state.completed_NAND) return "red";
-    if (cpu.state.completed_AND) return "green";
-    if (cpu.state.completed_ORN) return "yellow";
-    if (cpu.state.completed_OR) return "purple";
-    if (cpu.state.completed_ANDN) return "orange";
-    if (cpu.state.completed_NOR) return "pink";
-    if (cpu.state.completed_XOR) return "cyan";
+  std::string GetTaskColor() const { // changed it to prioritize based on task difficulty
     if (cpu.state.completed_EQU) return "brown";
+    if (cpu.state.completed_XOR) return "cyan";
+    if (cpu.state.completed_NOR) return "pink";
+    if (cpu.state.completed_ANDN) return "orange";
+    if (cpu.state.completed_OR) return "purple";
+    if (cpu.state.completed_ORN) return "yellow";
+    if (cpu.state.completed_AND) return "green";
+    if (cpu.state.completed_NAND) return "red";
+    if (cpu.state.completed_NOT) return "blue";
     return "black";
   }
 

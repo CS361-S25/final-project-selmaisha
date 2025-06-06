@@ -12,7 +12,7 @@ EMP_BUILD_CONFIG(WorldConfig,
     VALUE(NUM_BOXES, int, 20, "How many boxes is on one side the world?"),
     VALUE(LIFE_SPAN, int, 30, "How many updates without reproduction before an organism dies?"),
     VALUE(VIRULENCE, double, 0.8, "Fraction of host reward stolen by matching parasites"),
-    VALUE(NUM_PARASITES, int, 10, "How many parasites to inject into the world?"),
+    VALUE(NUM_PARASITES, int, 30, "How many parasites to inject into the world?"),
   )
 
 #endif

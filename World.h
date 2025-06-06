@@ -51,6 +51,17 @@ class OrgWorld : public emp::World<Host> {
 
   emp::Ptr<emp::DataMonitor<int>> data_node_parasite_count;
 
+  // Parasite task counters
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_NOT_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_NAND_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_AND_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_ORN_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_OR_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_ANDN_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_NOR_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_XOR_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_parasite_EQU_count;
+
 
   int died_of_old_age = 0; //just for testing purposes
 
@@ -82,6 +93,18 @@ public:
     if(data_node_XOR_count) data_node_XOR_count.Delete();
     if(data_node_EQU_count) data_node_EQU_count.Delete();
     if(data_node_DEAD_count) data_node_DEAD_count.Delete();
+    
+    if(data_node_parasite_count) data_node_parasite_count.Delete();
+
+    if(data_node_parasite_NOT_count) data_node_parasite_NOT_count.Delete();
+    if(data_node_parasite_NAND_count) data_node_parasite_NAND_count.Delete();
+    if(data_node_parasite_AND_count) data_node_parasite_AND_count.Delete();
+    if(data_node_parasite_ORN_count) data_node_parasite_ORN_count.Delete();
+    if(data_node_parasite_OR_count) data_node_parasite_OR_count.Delete();
+    if(data_node_parasite_ANDN_count) data_node_parasite_ANDN_count.Delete();
+    if(data_node_parasite_NOR_count) data_node_parasite_NOR_count.Delete();
+    if(data_node_parasite_XOR_count) data_node_parasite_XOR_count.Delete();
+    if(data_node_parasite_EQU_count) data_node_parasite_EQU_count.Delete();
   }
 
   /**
@@ -108,13 +131,21 @@ public:
 
   void InjectParasite(emp::Ptr<Parasite> parasite) {
     // Find an empty slot in the population
-    for (size_t i = 0; i < pop.size(); ++i) {
-      if (IsOccupied(i)) {
-        if (!pop[i]->HasParasite()) {
-          // If the slot is occupied by a host, infect it with the parasite
-          pop[i]->SetParasite(parasite);
-          return;
-        }
+    // for (size_t i = 0; i < pop.size(); ++i) {
+    //   if (IsOccupied(i)) {
+    //     if (!pop[i]->HasParasite()) {
+    //       // If the slot is occupied by a host, infect it with the parasite
+    //       pop[i]->SetParasite(parasite);
+    //       return;
+    //     }
+    //   }
+    // }
+    auto shuffled_ids = emp::GetPermutation(GetRandom(), pop.size());
+
+    for (size_t i : shuffled_ids) {
+      if (IsOccupied(i) && !pop[i]->HasParasite()) {
+        pop[i]->SetParasite(parasite);
+        return;
       }
     }
   }
@@ -156,6 +187,136 @@ public:
     }
     return task_solvers;
   }
+
+  TaskSolverCounts GetParasiteTaskSolvers() {
+    TaskSolverCounts counts;
+    for (size_t i = 0; i < pop.size(); ++i) {
+      if (IsOccupied(i) && pop[i]->HasParasite()) {
+        const auto& state = pop[i]->GetParasite()->GetCPU().state;
+        if (state.completed_NOT) counts.NOT_count++;
+        if (state.completed_NAND) counts.NAND_count++;
+        if (state.completed_AND) counts.AND_count++;
+        if (state.completed_ORN) counts.ORN_count++;
+        if (state.completed_OR) counts.OR_count++;
+        if (state.completed_ANDN) counts.ANDN_count++;
+        if (state.completed_NOR) counts.NOR_count++;
+        if (state.completed_XOR) counts.XOR_count++;
+        if (state.completed_EQU) counts.EQU_count++;
+      }
+    }
+    return counts;
+  }
+
+  emp::DataMonitor<int>& GetParasiteNOTCountDataNode() {
+    if (!data_node_parasite_NOT_count) {
+      data_node_parasite_NOT_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_NOT_count->Reset();
+        data_node_parasite_NOT_count->AddDatum(GetParasiteTaskSolvers().NOT_count);
+      });
+    }
+    return *data_node_parasite_NOT_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteNANDCountDataNode() {
+    if (!data_node_parasite_NAND_count) {
+      data_node_parasite_NAND_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_NAND_count->Reset();
+        data_node_parasite_NAND_count->AddDatum(GetParasiteTaskSolvers().NAND_count);
+      });
+    }
+    return *data_node_parasite_NAND_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteANDCountDataNode() {
+    if (!data_node_parasite_AND_count) {
+      data_node_parasite_AND_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_AND_count->Reset();
+        data_node_parasite_AND_count->AddDatum(GetParasiteTaskSolvers().AND_count);
+      });
+    }
+    return *data_node_parasite_AND_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteORNCountDataNode() {
+    if (!data_node_parasite_ORN_count) {
+      data_node_parasite_ORN_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_ORN_count->Reset();
+        data_node_parasite_ORN_count->AddDatum(GetParasiteTaskSolvers().ORN_count);
+      });
+    }
+    return *data_node_parasite_ORN_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteORCountDataNode() {
+    if (!data_node_parasite_OR_count) {
+      data_node_parasite_OR_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_OR_count->Reset();
+        data_node_parasite_OR_count->AddDatum(GetParasiteTaskSolvers().OR_count);
+      });
+    }
+    return *data_node_parasite_OR_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteANDNCountDataNode() {
+    if (!data_node_parasite_ANDN_count) {
+      data_node_parasite_ANDN_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_ANDN_count->Reset();
+        data_node_parasite_ANDN_count->AddDatum(GetParasiteTaskSolvers().ANDN_count);
+      });
+    }
+    return *data_node_parasite_ANDN_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteNORCountDataNode() {
+    if (!data_node_parasite_NOR_count) {
+      data_node_parasite_NOR_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_NOR_count->Reset();
+        data_node_parasite_NOR_count->AddDatum(GetParasiteTaskSolvers().NOR_count);
+      });
+    }
+    return *data_node_parasite_NOR_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteXORCountDataNode() {
+    if (!data_node_parasite_XOR_count) {
+      data_node_parasite_XOR_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_XOR_count->Reset();
+        data_node_parasite_XOR_count->AddDatum(GetParasiteTaskSolvers().XOR_count);
+      });
+    }
+    return *data_node_parasite_XOR_count;
+  }
+
+  emp::DataMonitor<int>& GetParasiteEQUCountDataNode() {
+    if (!data_node_parasite_EQU_count) {
+      data_node_parasite_EQU_count.New();
+      OnUpdate([this](size_t) {
+        data_node_parasite_EQU_count->Reset();
+        data_node_parasite_EQU_count->AddDatum(GetParasiteTaskSolvers().EQU_count);
+      });
+    }
+    return *data_node_parasite_EQU_count;
+  }
+
+
+
+
+
+  //////////////
+  // emp::DataMonitor<std::string>& GetParasiteTasksDataNode() {
+  //   if (!data_node_parasite_tasks) {
+  //     data_node_parasite_tasks.New();
+  //   }
+  //   return *data_node_parasite_tasks;
+  // }
 
   emp::DataMonitor<int>& GetParasiteCountDataNode() {
     if (!data_node_parasite_count) {
@@ -429,12 +590,23 @@ public:
     
     for (int i : schedule) {
       if (!IsOccupied(i)) { continue; }
+      pop[i]->ClearTaskFlags();  
       pop[i]->Process(*this, i);
+
+      if (pop[i]->HasParasite()) {
+        pop[i]->GetParasite()->Process(*this, i);
+
+        //  survival logic for first N updates
+        constexpr size_t BONUS_UPDATE_LIMIT = 1000;
+        if (this->update < BONUS_UPDATE_LIMIT && pop[i]->GetParasite()->GetPoints() < 1) {
+          pop[i]->GetParasite()->AddPoints(5); // small survival buffer
+        }
+      }
 
       //check if parasite survived the cycle
       if (pop[i]->HasParasite()) {
         double points = pop[i]->GetParasite()->GetPoints();
-        if (points < -5.0) { //or should it be 0
+        if (points < -1.0) { //or should it be 0
           // Parasite is dead, remove it
           pop[i]->RemoveParasite();
         }
@@ -513,7 +685,15 @@ public:
         std::cout << "output: " << output << std::endl;
         std::cout << "Task solved: " << task->name() << std::endl;
       //double newPoints =  config->TASK_REWARD();
+      if (state.isParasite) {
+        std::cout << "[PARASITE] Solved task: " << task->name() << std::endl;
+        // GetParasiteTasksDataNode().AddDatum(task->name());
+      }
+
       double newPoints = config->REWARD();
+      // if (task->name() == "NAND") {
+      //   newPoints *= 0.25;  // Reduce reward for NAND to encourage diversity
+      // }
       if (!state.isParasite){
         //if it is an organism, add points
         //parasite points are handled later

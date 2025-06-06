@@ -34,6 +34,14 @@ struct OrgState {
   bool completed_XOR = false;
   bool completed_EQU = false;
 
+  // In OrgState.h
+  bool HasCompletedAnyTask() const {
+    return completed_NOT || completed_NAND || completed_AND ||
+          completed_ORN || completed_OR || completed_ANDN ||
+          completed_NOR || completed_XOR || completed_EQU;
+  }
+
+
   /**
    * input: uint32_t input (new input value)
    * output: none
