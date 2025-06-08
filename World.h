@@ -584,23 +584,24 @@ public:
   void Update() {
     emp::World<Host>::Update();
     double mutation_rate = config->MUTATION_RATE();
+    constexpr size_t BONUS_UPDATE_LIMIT = 1000;
 
     //Process each organism
     emp::vector<size_t> schedule = emp::GetPermutation(GetRandom(), GetSize());
     
     for (int i : schedule) {
       if (!IsOccupied(i)) { continue; }
-      pop[i]->ClearTaskFlags();  
+      //pop[i]->ClearTaskFlags();  
       pop[i]->Process(*this, i);
 
       if (pop[i]->HasParasite()) {
         pop[i]->GetParasite()->Process(*this, i);
 
         //  survival logic for first N updates
-        constexpr size_t BONUS_UPDATE_LIMIT = 1000;
-        if (this->update < BONUS_UPDATE_LIMIT && pop[i]->GetParasite()->GetPoints() < 1) {
+        //constexpr size_t BONUS_UPDATE_LIMIT = 1000;
+        /* if (this->update < BONUS_UPDATE_LIMIT && pop[i]->GetParasite()->GetPoints() < 1) {
           pop[i]->GetParasite()->AddPoints(5); // small survival buffer
-        }
+        } */
       }
 
       //check if parasite survived the cycle
@@ -621,7 +622,9 @@ public:
       if (SolvedSameTask(host, parasite)) {
         parasite->AddPoints(GetVirulence() * GetReward());
         host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
-      }
+      } else if (this->update < BONUS_UPDATE_LIMIT) {
+          pop[i]->GetParasite()->AddPoints(5); // small survival buffer
+        }
     }
 
 
@@ -677,13 +680,12 @@ public:
         //state.points += 1;
         continue;
       }
-        //std::cout << "Org at: " << state.current_location.GetIndex() << std::endl;
+        //std::cout << "Org at: " << state.current_location.GetIndex() << " solved: " << task->name() << std::endl;
 /*         std::cout << "input1: " << state.last_inputs[0] << std::endl;
         std::cout << "input2: " << state.last_inputs[1] << std::endl;
         std::cout << "input3: " << state.last_inputs[2] << std::endl;
         std::cout << "input4: " << state.last_inputs[3] << std::endl; */
         //std::cout << "output: " << output << std::endl;
-        // std::cout << "Task solved: " << task->name() << std::endl;
       //double newPoints =  config->TASK_REWARD();
       if (state.isParasite) {
         std::cout << "[PARASITE] Solved task: " << task->name() << std::endl;

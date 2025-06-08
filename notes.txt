@@ -19,3 +19,14 @@ Issue thoughts:
     I don't know why this is happening. In web we use the second method and it works well so this is confusing
     It might be because the random injection might overwrite other orgs, so we can fix that. But for now the sequential one works well.
 - I ended up setting popstruct.mixed instead of grid so organisms dont keep reproducing on top of their old offspring which just kills of task solvers
+
+
+Newer thoughts:
+- Should we reset the flags between each time? 
+    If we use them to determine parasite points, then yes, we should. But I think the diversity
+    should be calculated based on how many orgs can solve a task, not how many did it in this update
+    - If we use them at all to inject parasites we should also not reset them, as parasites should be injected where a host is even 
+        just capabple of solving a task
+
+SO NEXT STEP: Either don't clear task flags, or fix injection logic. Check points logic to figure out which one is easier to do.
+Also double check how parasite reproduction works

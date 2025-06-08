@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
   //world.SetPopStruct_Grid(config.NUM_BOXES(), config.NUM_BOXES());
   world.SetPopStruct_Mixed();
   for (int i = 0; i < config.NUM_START(); i++) {
-    Host* new_org = new Host(&world, 0);
+    emp::Ptr<Host> new_org = new Host(&world, 0);
     // if (random.P(0.5)) {
     //   new_org->GetCPU().LoadProgram(BuildNANDProgram());
     // }
@@ -90,8 +90,8 @@ int main(int argc, char *argv[]) {
   // Set up the world grid and data output
   world.Resize(config.NUM_BOXES(), config.NUM_BOXES());
   
-  world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/100);
-  //world.SetupOrgFile("worlddata.csv").SetTimingRepeat(40);
+  //world.SetupOrgFile("worlddata.csv").SetTimingRepeat(config.NUM_UPDATES()/100);
+  world.SetupOrgFile("worlddata.csv").SetTimingRepeat(1);
 
 /*   //HAVE SOMETHING LIKE THIS TO INITIALIZE THEM WITH A TASK
   // Pseudocode
@@ -105,45 +105,45 @@ int main(int argc, char *argv[]) {
   for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
-    if (update == 1500){
+    if (update == 3000){
       std::cout << "Injecting parasites" << std::endl;
       // Inject parasites into the world
 
       std::vector<size_t> eligible_hosts;
 
-  for (size_t i = 0; i < world.GetSize(); ++i) {
-    if (!world.IsOccupied(i)) continue;
-    auto& host = world.GetOrg(i);
-    //if (!host) continue; //this caused an error and I don't think its needed with the check above
+      for (size_t i = 0; i < world.GetSize(); ++i) {
+        if (!world.IsOccupied(i)) continue;
+        auto& host = world.GetOrg(i);
+        //if (!host) continue; //this caused an error and I don't think its needed with the check above
 
-    // Check if this host has solved a task
-    const auto& state = host.GetCPU().state;
-    if (state.completed_NOT || state.completed_NAND || state.completed_AND ||
-        state.completed_ORN || state.completed_OR || state.completed_ANDN ||
-        state.completed_NOR || state.completed_XOR || state.completed_EQU) {
-      eligible_hosts.push_back(i);
-    }
-  }
+        // Check if this host has solved a task
+        const auto& state = host.GetCPU().state;
+        if (state.completed_NOT || state.completed_NAND || state.completed_AND ||
+            state.completed_ORN || state.completed_OR || state.completed_ANDN ||
+            state.completed_NOR || state.completed_XOR || state.completed_EQU) {
+          eligible_hosts.push_back(i);
+        }
+      }
 
-  emp::Random& rnd = world.GetRandom();
-  for (int i = 0; i < config.NUM_PARASITES() && !eligible_hosts.empty(); ++i) {
-    size_t index = rnd.GetUInt(eligible_hosts.size());
-    size_t host_pos = eligible_hosts[index];
-    eligible_hosts.erase(eligible_hosts.begin() + index); // avoid re-using
+      emp::Random& rnd = world.GetRandom();
+      for (int i = 0; i < config.NUM_PARASITES() && !eligible_hosts.empty(); ++i) {
+        size_t index = rnd.GetUInt(eligible_hosts.size());
+        size_t host_pos = eligible_hosts[index];
+        eligible_hosts.erase(eligible_hosts.begin() + index); // avoid re-using
 
-    Parasite* new_parasite = new Parasite(&world, -1.0);
-    new_parasite->GetCPU().LoadProgram(BuildNANDProgram());
-    new_parasite->setVirulence(config.VIRULENCE());
+        Parasite* new_parasite = new Parasite(&world, -1.0);
+        new_parasite->GetCPU().LoadProgram(BuildNANDProgram());
+        new_parasite->setVirulence(config.VIRULENCE());
 
-    // Inject directly into the host
-    emp::Ptr<Host> host = world.GetOrgPtr(host_pos);
-    if (host && !host->HasParasite()) {
-      host->SetParasite(emp::Ptr<Parasite>(new_parasite));
-      //world.AddParasiteToTracking(new_parasite); // if needed
-    } else {
-      delete new_parasite; // prevent memory leak
-    }
-  }
+        // Inject directly into the host
+        emp::Ptr<Host> host = world.GetOrgPtr(host_pos);
+        if (host && !host->HasParasite()) {
+          host->SetParasite(emp::Ptr<Parasite>(new_parasite));
+          //world.AddParasiteToTracking(new_parasite); // if needed
+        } else {
+          delete new_parasite; // prevent memory leak
+        }
+      }
       // for (int i = 0; i < config.NUM_PARASITES(); i++) {
       //   Parasite* new_parasite = new Parasite(&world, -1.0);
       //   new_parasite->GetCPU().LoadProgram(BuildNANDProgram());
