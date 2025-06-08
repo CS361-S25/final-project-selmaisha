@@ -579,30 +579,19 @@ public:
     bool SolvedSameTask(emp::Ptr<Host> org, emp::Ptr<Parasite> parasite) {
       const OrgState & host_state = org->GetCPU().state;
       const OrgState & parasite_state = parasite->GetCPU().state;
-      // const OrgState & parasite_state = parasite->GetCPU().GetState();
 
-      bool result = false;
-
-      if (host_state.completed_NOT && parasite_state.completed_NOT) {
-        result = true;
-      } else if (host_state.completed_NAND && parasite_state.completed_NAND) {
-        result = true;
-      } else if (host_state.completed_AND && parasite_state.completed_AND) {
-        result = true;
-      } else if (host_state.completed_ORN && parasite_state.completed_ORN) {
-        result = true;
-      } else if (host_state.completed_OR && parasite_state.completed_OR) {
-        result = true;
-      } else if (host_state.completed_ANDN && parasite_state.completed_ANDN) {
-        result = true;
-      } else if (host_state.completed_NOR && parasite_state.completed_NOR) {
-        result = true;
-      } else if (host_state.completed_XOR && parasite_state.completed_XOR) {
-        result = true;
-      } else if (host_state.completed_EQU && parasite_state.completed_EQU) {
-        result = true;
+      for (const std::string& task : parasite_state.last_solved_tasks) {
+        if      (task == "NOT"  && host_state.completed_NOT)  return true;
+        else if (task == "NAND" && host_state.completed_NAND) return true;
+        else if (task == "AND"  && host_state.completed_AND)  return true;
+        else if (task == "ORN"  && host_state.completed_ORN)  return true;
+        else if (task == "OR"   && host_state.completed_OR)   return true;
+        else if (task == "ANDN" && host_state.completed_ANDN) return true;
+        else if (task == "NOR"  && host_state.completed_NOR)  return true;
+        else if (task == "XOR"  && host_state.completed_XOR)  return true;
+        else if (task == "EQU"  && host_state.completed_EQU)  return true;
       }
-      return result;
+      return false;
     }
 
   /**
@@ -651,7 +640,8 @@ public:
         // std::cout << "parasite at index " << i 
         //           << " has points: " << pop[i]->GetParasite()->GetPoints() 
         //           << std::endl;
-        pop[i]->GetParasite()->ClearTaskFlags();
+        //pop[i]->GetParasite()->ClearTaskFlags();
+        pop[i]->GetParasite()->GetCPU().state.last_solved_tasks.clear();
       }
     }
 
@@ -700,22 +690,17 @@ public:
       //check if parasite deserves points
       if (SolvedSameTask(host, parasite)) {
         parasite->AddPoints(3 * GetVirulence() * GetReward()); //boosted by x3 - goal is to be able to remove this
-        host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
+        if (this->update_num-1500 > BONUS_UPDATE_LIMIT) { //only punish host after a while
+          host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
+        }
         std::cout << "Parasite at index " << i 
                   << " solved the same task as host"
                   << " and has now points: " << parasite->GetPoints() 
+                  << " (host points: " << host->GetPoints() << ")"
+                  << " adding to reproduction queue."
                   << std::endl;
         parasite_reproduce_queue.push_back(emp::WorldPosition(i)); // Add parasite to reproduction queue
       }
-      // if (parasite->GetPoints() > 20){
-      //   std::cout << "Parasite at index " << i 
-      //             << " has points: " << parasite->GetPoints() 
-      //             << " and is ready to reproduce." << std::endl;
-      //   //this does not mean it will reproduce, just that it is ready
-      //   //we can call the pushback to reporuction queue here, but that ruins the point of the randomness of the instruction
-      //   //so that's not a good way to handle it, but might fix stuff
-      // }
-
     }
 
 
@@ -837,45 +822,28 @@ public:
    * Purpose: Check if an organism's output solves any task and assign points
    */
   void CheckOutput(float output, OrgState &state) {
-    if (state.isParasite) {
-      // If this is a parasite, we don't check tasks here
-      // Parasites have their own task checking logic
-      std::cout << "[checking parasite]" << std::endl;
-    }
     for (Task *task : tasks) {
       bool success = task->CheckOutput(output, state.last_inputs);
-      if (!success) {
-        continue;
-      }
-        //std::cout << "Org at: " << state.current_location.GetIndex() << " solved: " << task->name() << std::endl;
-/*         std::cout << "input1: " << state.last_inputs[0] << std::endl;
-        std::cout << "input2: " << state.last_inputs[1] << std::endl;
-        std::cout << "input3: " << state.last_inputs[2] << std::endl;
-        std::cout << "input4: " << state.last_inputs[3] << std::endl; */
-        //std::cout << "output: " << output << std::endl;
-      //double newPoints =  config->TASK_REWARD();
-
+      if (!success) continue;
       double newPoints = config->REWARD();
-      // if (task->name() == "NAND") {
-      //   newPoints *= 0.25;  // Reduce reward for NAND to encourage diversity
-      // }
-      if (!state.isParasite){
-        //if it is an organism, add points
-        //parasite points are handled later
+
+      if (!state.isParasite) {
+        // Host: add points directly
         state.points += newPoints;
       } else {
-        std::cout << "[PARASITE] at " << state.current_location.GetIndex() << " Solved task: " << task->name() << std::endl;
-        // GetParasiteTasksDataNode().AddDatum(task->name());
-        if (this->update - 1500 < BONUS_UPDATE_LIMIT) {
-          //if it is a parasite, add points only if it is within the bonus update limit
-          state.points += newPoints/2;
+        std::cout << "[PARASITE] at " << state.current_location.GetIndex()
+                  << " Solved task: " << task->name() << std::endl;
+        // Track all solved tasks this update
+        state.last_solved_tasks.push_back(task->name());
+        // Give bonus points and queue for reproduction if within bonus window
+        if (this->update_num - 1500 < BONUS_UPDATE_LIMIT) {
+          state.points += newPoints*2;
           std::cout << "gave parasite bonus points and added it to reproduction queue" << std::endl;
-          parasite_reproduce_queue.push_back(state.current_location); // Add parasite to reproduction queue
+          parasite_reproduce_queue.push_back(state.current_location);
         }
       }
       SetTaskVars(task, state);
     }
-    //std::cout << "Points after task check: " << state.points << std::endl;
   }
 
   /**

@@ -107,16 +107,13 @@ Today's updates:
 - Now parasites who solve tasks are automatically added to the reproduction queue
 - I am adjusting the time when we inject updates to fit when the host population is stable
     - If you adjust these make sure that the corresponding values is adjusted in world as well (do cmd f for 1500)
-
-
-Suggestion about next todo:
-- Don't reset parasite task flags, rather keep a "last solved task" thing in their state
-  and use that to determined whether they solved the same task as their host or not
-  (like we kinda did in the beginning)
+- Note that there are points added places where points should not be in the final result
+- Changed added "last task solved" vector in parasite to keep track of most recent tasks, and removed clearing the parasite task flags before each update
+    - But last task solved is cleared each time
+- Hosts only get points subtracted if parasite solves same task after a given number of updates
 
 Current main issues:
 - Task flags for parasites do not correspond to when there is a printed message about a task solving the same task as their host
 - We almost never see [PARASITE] solved a task, even though CheckOutput is called on parasites
-- But we do see "parasite solved same task as host" even though we don't see that CheckOutput was successful on a parasite
-    - Which is why I think there is a task flag issue
 - Parasites are initially doing ok, but then suddenly they stop reproduction
+- Seems like the number of hosts that die of old age is being reduced with time as well - are hosts also having trouble reproducing..?

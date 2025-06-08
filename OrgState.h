@@ -34,6 +34,8 @@ struct OrgState {
   bool completed_XOR = false;
   bool completed_EQU = false;
 
+  std::vector<std::string> last_solved_tasks;
+
   // In OrgState.h
   bool HasCompletedAnyTask() const {
     return completed_NOT || completed_NAND || completed_AND ||
