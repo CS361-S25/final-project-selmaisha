@@ -114,10 +114,10 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < world.GetSize(); ++i) {
     if (!world.IsOccupied(i)) continue;
     auto& host = world.GetOrg(i);
-    if (!host) continue;
+    //if (!host) continue; //this caused an error and I don't think its needed with the check above
 
     // Check if this host has solved a task
-    const auto& state = host->GetCPU().state;
+    const auto& state = host.GetCPU().state;
     if (state.completed_NOT || state.completed_NAND || state.completed_AND ||
         state.completed_ORN || state.completed_OR || state.completed_ANDN ||
         state.completed_NOR || state.completed_XOR || state.completed_EQU) {
@@ -136,10 +136,10 @@ int main(int argc, char *argv[]) {
     new_parasite->setVirulence(config.VIRULENCE());
 
     // Inject directly into the host
-    Host* host = world.GetOrgPtr(host_pos);
+    emp::Ptr<Host> host = world.GetOrgPtr(host_pos);
     if (host && !host->HasParasite()) {
       host->SetParasite(emp::Ptr<Parasite>(new_parasite));
-      world.AddParasiteToTracking(new_parasite); // if needed
+      //world.AddParasiteToTracking(new_parasite); // if needed
     } else {
       delete new_parasite; // prevent memory leak
     }

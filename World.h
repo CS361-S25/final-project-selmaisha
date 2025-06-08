@@ -677,13 +677,13 @@ public:
         //state.points += 1;
         continue;
       }
-        std::cout << "Org at: " << state.current_location.GetIndex() << std::endl;
+        //std::cout << "Org at: " << state.current_location.GetIndex() << std::endl;
 /*         std::cout << "input1: " << state.last_inputs[0] << std::endl;
         std::cout << "input2: " << state.last_inputs[1] << std::endl;
         std::cout << "input3: " << state.last_inputs[2] << std::endl;
         std::cout << "input4: " << state.last_inputs[3] << std::endl; */
-        std::cout << "output: " << output << std::endl;
-        std::cout << "Task solved: " << task->name() << std::endl;
+        //std::cout << "output: " << output << std::endl;
+        // std::cout << "Task solved: " << task->name() << std::endl;
       //double newPoints =  config->TASK_REWARD();
       if (state.isParasite) {
         std::cout << "[PARASITE] Solved task: " << task->name() << std::endl;
