@@ -94,6 +94,12 @@ public:
     cpu.state.completed_EQU = false;
   }
 
+  bool canSolveTask() const {
+    return cpu.state.completed_NOT || cpu.state.completed_NAND || cpu.state.completed_AND ||
+           cpu.state.completed_ORN || cpu.state.completed_OR || cpu.state.completed_ANDN ||
+           cpu.state.completed_NOR || cpu.state.completed_XOR || cpu.state.completed_EQU;
+  }
+
   /**
    * input: double mutation_rate
    * output: optional<Organism> (offspring)

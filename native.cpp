@@ -6,15 +6,6 @@
 
 
 
-// sgpl::Program<Spec> BuildNANDProgram() {
-//     sgpl::Program<Spec> prog;
-//     prog.PushInst(NandInstruction{}, 0, 1, 2); // r0 = ~(r1 & r2)
-//     prog.PushInst(IOInstruction{}, 0);         
-//     prog.PushInst(ReproduceInstruction{});     
-//     return prog;
-//   }
-
-
 // const std::string nand_prog_src = R"(
 // NAND 0 1 2
 // IO 0
@@ -26,13 +17,13 @@
 //    return prog;
 // }
 
-sgpl::Program<Spec> BuildNANDProgram() {
-  const std::string nand_prog_src = R"(
-  NAND 0 1 2
+sgpl::Program<Spec> BuildANDNProgram() {
+  const std::string andn_prog_src = R"(
+  ANDN 0 1 2
   IO 0
   REPRODUCE
   )";
-  return sgpl::Program<Spec>(nand_prog_src); // This parses the string
+  return sgpl::Program<Spec>(andn_prog_src); // This parses the string
 }
 
 
@@ -73,9 +64,9 @@ int main(int argc, char *argv[]) {
   world.SetPopStruct_Mixed();
   for (int i = 0; i < config.NUM_START(); i++) {
     emp::Ptr<Host> new_org = new Host(&world, 0);
-    // if (random.P(0.5)) {
-    //   new_org->GetCPU().LoadProgram(BuildNANDProgram());
-    // }
+    if (random.P(0.95)) {
+      new_org->GetCPU().LoadProgram(BuildANDNProgram());
+    }
 
     world.Inject(*new_org);
     //initialize without parasites - they must be added later
@@ -105,40 +96,42 @@ int main(int argc, char *argv[]) {
   for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
-    if (update == 3000){
+    if (update == 1500){
       std::cout << "Injecting parasites" << std::endl;
       // Inject parasites into the world
 
+      //make this into a fcn of world, since we use it here and in parasite reproduction logic
+      // Find all eligible hosts that have solved at least one task
       std::vector<size_t> eligible_hosts;
-
       for (size_t i = 0; i < world.GetSize(); ++i) {
         if (!world.IsOccupied(i)) continue;
         auto& host = world.GetOrg(i);
-        //if (!host) continue; //this caused an error and I don't think its needed with the check above
+        if (!host.HasParasite()){
+          //if (!host) continue; //this caused an error and I don't think its needed with the check above
 
-        // Check if this host has solved a task
-        const auto& state = host.GetCPU().state;
-        if (state.completed_NOT || state.completed_NAND || state.completed_AND ||
-            state.completed_ORN || state.completed_OR || state.completed_ANDN ||
-            state.completed_NOR || state.completed_XOR || state.completed_EQU) {
-          eligible_hosts.push_back(i);
+          // Check if the host has solved at least one task
+          if (host.canSolveTask()) {
+            eligible_hosts.push_back(i);
+          }
+          //eligible_hosts.push_back(i); // For now, consider all hosts 
         }
       }
 
+      // Inject parasites into eligible hosts
       emp::Random& rnd = world.GetRandom();
       for (int i = 0; i < config.NUM_PARASITES() && !eligible_hosts.empty(); ++i) {
         size_t index = rnd.GetUInt(eligible_hosts.size());
         size_t host_pos = eligible_hosts[index];
         eligible_hosts.erase(eligible_hosts.begin() + index); // avoid re-using
 
-        Parasite* new_parasite = new Parasite(&world, -1.0);
-        new_parasite->GetCPU().LoadProgram(BuildNANDProgram());
+        emp::Ptr<Parasite> new_parasite = new Parasite(&world, -1.0);
+        new_parasite->GetCPU().LoadProgram(BuildANDNProgram());
         new_parasite->setVirulence(config.VIRULENCE());
 
         // Inject directly into the host
         emp::Ptr<Host> host = world.GetOrgPtr(host_pos);
         if (host && !host->HasParasite()) {
-          host->SetParasite(emp::Ptr<Parasite>(new_parasite));
+          host->SetParasite(new_parasite);
           //world.AddParasiteToTracking(new_parasite); // if needed
         } else {
           delete new_parasite; // prevent memory leak
@@ -153,6 +146,12 @@ int main(int argc, char *argv[]) {
       // }
     }
   }
+
+  //access worlddate.csv and creat a plot of each of the columns over time
+  // Note: The data file is automatically written to by the world during updates.
+  // You can use tools like Python's pandas or matplotlib to visualize the data.
+  std::cout << "Simulation complete. Data written to worlddata.csv." << std::endl;
+  //access file and create plot
 
   // Debug info if needed
   // std::cout << "Num orgs: " << world.GetNumOrgs() << std::endl;

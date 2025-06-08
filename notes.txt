@@ -30,3 +30,93 @@ Newer thoughts:
 
 SO NEXT STEP: Either don't clear task flags, or fix injection logic. Check points logic to figure out which one is easier to do.
 Also double check how parasite reproduction works
+What if task solving parasites get points the first n updates no matter what their host does?
+
+
+Live todo
+- Better host balance!
+    Settings:
+    - numstart 30
+    - mutation rate 0.02
+    - reward 15
+    - numboxes 50
+    - life_span 10
+    - 5 bonus points per update the first 5 updates
+- Yay, some parasites reproduced!! But then they stop. I think maybe the successful parasites died.
+    One or two solve tasks, but one is overwritten and one kills its host
+    I could change the parasite points boost to be decided based on numparasites instead of #updates
+        But that won't change anything - the surviving parasite has plenty of points, it is just not reproducing
+        - I could check whether it calls the reproduce instruction - my hypothesis is that it doesn't but then there is nothing I should do about it
+    I need to increase the points again. Parasites who solve tasks barely get more points than the ones who dont.
+     - So up the points and decrease the life_span
+- They stopped solving tasks... What happened?
+
+What if I give parasites less extra points, but then a LOT of points when they solve a task
+
+Okay so I think the odds just arent in our favor. There are not THAT many task solvers and thus fewer parasites
+They get a very small chance to evolve tasks - there needs to be over 250 hosts before they evolve tasks
+So what if we inject parasites in any hosts, not just task solvers? There are pros and cons
+    - We can get a lot more parasites that can reproduce and mutate to solve tasks
+    - Parasites can only survive for long in hosts that also solve tasks, so we might just kill off the parasites that do survive
+    - Maybe the middle ground here is to inject a lot of parasites into random organisms, and then offspring are placed in task solvers..? Not sure if that allows for enough freedom...
+    - Maybe place randomly for first n updates, then target task solvers after..?
+
+With andn as taught instruction, we might have to adjust points/lifespan down again
+
+Not sure what to do next. Parasites survive a little bit, but then not enough learn to do tasks
+I have been trying to adjust host and parasite rewards (initial bonus rewards, massive task rewards, virulence)
+to create a better balance, but unsuccessful so far. Might try to adjust more - no other ideas atm. Maybe initialize them with one more task..? Not sure
+
+Main idea is that we need a large percentage of the population to be task solvers! This mean minimizing lifetime and upping the rewards.
+Right now I have settings:
+    set SEED 3                      # What value should the random seed be?
+    set NUM_START 30                # How many starting organisms?
+    set MUTATION_RATE 0.02          # What is the mutation rate?
+    set NUM_UPDATES 4000            # How many updates to run?
+    set REWARD 20                   # What is the reward for completing a task?
+    set NUM_BOXES 50                # How many boxes is on one side the world?
+    set LIFE_SPAN 15                # How many updates without reproduction before an organism dies?
+    set NUM_PARASITES 300           # How many parasites to spawn?
+    set VIRULENCE 0.5               # How virulent are the parasites?
+    set PARASITE_MUTATION_RATE 0.02 # What is the mutation rate for parasites?
+Which gives about 2100/2500 saturation which is theoretically good, and about 160 parasites are injected (these are the #of task solvers)
+More injected parasites would be good, but I don't think I can set the reward for hosts much higher, so not sure what else to adjust...
+
+Let the organism population settle down/stabilize before introducing any parasites
+
+
+Today's updates:
+- Don't reset task flags for hosts, but for organisms
+- Orgs get n extra points for the m first updates
+- Parasites get one extra point the first 1000 updates
+- Parasite reproduction logic added
+- Settings adjusted to fine tune saturation to be about 80% with as many task solvers as possible
+- I added in andn instruction instead of nand because andn is easier for them
+- Parasites are initially injected into any orgs, not just task solvers (to up their numbers). Might want to change this back!
+    - I changed this back 
+- Increased prevalence of reproduce instruction
+- Added parasite nodes to datafile
+- Increased number of orgs that start with andn
+- Give parasites initially some points for solving tasks even though its not the same as its host
+- created custom DoBirth - if the slot for the offspring is a task solver, try again
+    - might still overwrite tasksolver, but reduces the probability
+- for the first n updates, parasites are allowed to live in any host (to allow their population of task solvers to grow)
+  and then when they are more robust we limit them to host task solvers
+    - With this turned on we need a lot more initial parasites than when doing it normally.
+    I TRIED THIS AND THEN REMOVED IT AS IT DIDNT HELP
+- Now parasites who solve tasks are automatically added to the reproduction queue
+- I am adjusting the time when we inject updates to fit when the host population is stable
+    - If you adjust these make sure that the corresponding values is adjusted in world as well (do cmd f for 1500)
+
+
+Suggestion about next todo:
+- Don't reset parasite task flags, rather keep a "last solved task" thing in their state
+  and use that to determined whether they solved the same task as their host or not
+  (like we kinda did in the beginning)
+
+Current main issues:
+- Task flags for parasites do not correspond to when there is a printed message about a task solving the same task as their host
+- We almost never see [PARASITE] solved a task, even though CheckOutput is called on parasites
+- But we do see "parasite solved same task as host" even though we don't see that CheckOutput was successful on a parasite
+    - Which is why I think there is a task flag issue
+- Parasites are initially doing ok, but then suddenly they stop reproduction
