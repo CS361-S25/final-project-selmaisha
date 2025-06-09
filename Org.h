@@ -35,6 +35,10 @@ public:
   CPU GetCPU() { return cpu; }
   const CPU& GetCPU() const { return cpu; }
 
+  // In Organism, Host, and Parasite classes
+  CPU & GetCPURef() { return cpu; }
+  const CPU & GetCPURef() const { return cpu; }
+
   /**
    * input: double _in (points)
    * output: none
@@ -71,7 +75,7 @@ public:
   void Mutate(double mutation_rate) { cpu.Mutate(mutation_rate); }
 
   bool IsDead(double max_age) { //might have to add virtual here
-    return (cpu.state.age > max_age && cpu.state.points<=0.0);
+    return (cpu.state.age > max_age || cpu.state.points < 0.0);
   }
 
   void ResetAge() {
@@ -81,6 +85,24 @@ public:
   virtual std::unique_ptr<Organism> Clone() const {
     return std::make_unique<Organism>(*this);
 }
+
+  void ClearTaskFlags() {
+    cpu.state.completed_NOT = false;
+    cpu.state.completed_NAND = false;
+    cpu.state.completed_AND = false;
+    cpu.state.completed_ORN = false;
+    cpu.state.completed_OR = false;
+    cpu.state.completed_ANDN = false;
+    cpu.state.completed_NOR = false;
+    cpu.state.completed_XOR = false;
+    cpu.state.completed_EQU = false;
+  }
+
+  bool canSolveTask() const {
+    return cpu.state.completed_NOT || cpu.state.completed_NAND || cpu.state.completed_AND ||
+           cpu.state.completed_ORN || cpu.state.completed_OR || cpu.state.completed_ANDN ||
+           cpu.state.completed_NOR || cpu.state.completed_XOR || cpu.state.completed_EQU;
+  }
 
   /**
    * input: double mutation_rate
@@ -102,16 +124,16 @@ public:
     return {};
   } */
 
-  std::string GetTaskColor() const {
-    if (cpu.state.completed_NOT) return "blue";
-    if (cpu.state.completed_NAND) return "red";
-    if (cpu.state.completed_AND) return "green";
-    if (cpu.state.completed_ORN) return "yellow";
-    if (cpu.state.completed_OR) return "purple";
-    if (cpu.state.completed_ANDN) return "orange";
-    if (cpu.state.completed_NOR) return "pink";
-    if (cpu.state.completed_XOR) return "cyan";
+  std::string GetTaskColor() const { // changed it to prioritize based on task difficulty
     if (cpu.state.completed_EQU) return "brown";
+    if (cpu.state.completed_XOR) return "cyan";
+    if (cpu.state.completed_NOR) return "pink";
+    if (cpu.state.completed_ANDN) return "orange";
+    if (cpu.state.completed_OR) return "purple";
+    if (cpu.state.completed_ORN) return "yellow";
+    if (cpu.state.completed_AND) return "green";
+    if (cpu.state.completed_NAND) return "red";
+    if (cpu.state.completed_NOT) return "blue";
     return "black";
   }
 
