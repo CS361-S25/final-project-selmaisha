@@ -67,7 +67,21 @@ class OrgWorld : public emp::World<Host> {
 
   int died_of_old_age = 0; //just for testing purposes
   size_t update_num = 0; //just for testing purposes - something is off with this->update
-  size_t BONUS_UPDATE_LIMIT = 200;
+  size_t BONUS_UPDATE_LIMIT = 1000;
+  //DO THE SAME FOR INJECT PARASITES AT
+  size_t INJECT_PARASITES_AT = 1500; //update at which parasites are injected into the world
+
+  //adaptations to help parasites form a stable population
+  //"first stage" refers to the first [BONUS_UPDATE_LIMIT] updates after their injection
+  bool parasite_life_bonus = true; //whether parasites should have a life bonus in the first stage
+  bool parasite_task_bonus = true; //whether they get a bonus for solving tasks in the first stage
+  bool parasite_reproduce_bonus = true; //whether they get a bonus for reproduction in the first stage
+  bool host_protection = true; //whether hosts are protected from losing points to parasites in the first stage
+  bool use_parasite_task_flags = false; //whether to use permanent task-flags or just the last solved task for parasites
+  bool custom_birth = true; //whether to allow custom birth strategies for hosts do reduce the probability of overwriting task solvers
+  bool parasite_multiple_reproduction = true; //whether parasites can reproduce multiple times
+
+  bool allow_all_hosts = false;
 
 
 public:
@@ -78,7 +92,10 @@ public:
    * purpose: Constructor that initializes the world with configuration and RNG.
    */
   OrgWorld(emp::Random &_random, WorldConfig *_config) 
-  : emp::World<Host>(_random), config(_config){  }
+  : emp::World<Host>(_random), config(_config){
+    BONUS_UPDATE_LIMIT = config->BONUS_UPDATE_LIMIT();
+    INJECT_PARASITES_AT = config->INJECT_PARASITES_AT();
+   }
 
   /**
    * input: none
@@ -135,6 +152,14 @@ public:
    */
   double GetParasiteMutationRate() {
     return config->PARASITE_MUTATION_RATE();
+  }
+
+  double GetParasiteVirulence() {
+    return config->VIRULENCE();
+  }
+
+  size_t GetParasiteInjectionUpdate(){
+    return config->INJECT_PARASITES_AT();
   }
 
   bool IsParasite(size_t id) const {
@@ -580,18 +605,31 @@ public:
       const OrgState & host_state = org->GetCPU().state;
       const OrgState & parasite_state = parasite->GetCPU().state;
 
-      for (const std::string& task : parasite_state.last_solved_tasks) {
-        if      (task == "NOT"  && host_state.completed_NOT)  return true;
-        else if (task == "NAND" && host_state.completed_NAND) return true;
-        else if (task == "AND"  && host_state.completed_AND)  return true;
-        else if (task == "ORN"  && host_state.completed_ORN)  return true;
-        else if (task == "OR"   && host_state.completed_OR)   return true;
-        else if (task == "ANDN" && host_state.completed_ANDN) return true;
-        else if (task == "NOR"  && host_state.completed_NOR)  return true;
-        else if (task == "XOR"  && host_state.completed_XOR)  return true;
-        else if (task == "EQU"  && host_state.completed_EQU)  return true;
+      if (use_parasite_task_flags) { //use task flags
+        if (parasite_state.completed_NOT && host_state.completed_NOT)  return true;
+        else if (parasite_state.completed_NAND && host_state.completed_NAND) return true;
+        else if (parasite_state.completed_AND && host_state.completed_AND)  return true; 
+        else if (parasite_state.completed_ORN && host_state.completed_ORN)  return true;
+        else if (parasite_state.completed_OR && host_state.completed_OR)   return true;
+        else if (parasite_state.completed_ANDN && host_state.completed_ANDN) return true;
+        else if (parasite_state.completed_NOR && host_state.completed_NOR)  return true;
+        else if (parasite_state.completed_XOR && host_state.completed_XOR)  return true;
+        else if (parasite_state.completed_EQU && host_state.completed_EQU)  return true;
+        else return false;
+      } else { //use last_solved_tasks
+        for (const std::string& task : parasite_state.last_solved_tasks) {
+          if      (task == "NOT"  && host_state.completed_NOT)  return true;
+          else if (task == "NAND" && host_state.completed_NAND) return true;
+          else if (task == "AND"  && host_state.completed_AND)  return true;
+          else if (task == "ORN"  && host_state.completed_ORN)  return true;
+          else if (task == "OR"   && host_state.completed_OR)   return true;
+          else if (task == "ANDN" && host_state.completed_ANDN) return true;
+          else if (task == "NOR"  && host_state.completed_NOR)  return true;
+          else if (task == "XOR"  && host_state.completed_XOR)  return true;
+          else if (task == "EQU"  && host_state.completed_EQU)  return true;
+        }
+        return false;
       }
-      return false;
     }
 
   /**
@@ -605,6 +643,7 @@ public:
     double host_mutation_rate = GetHostMutationRate();
     double parasite_mutation_rate = GetParasiteMutationRate();
     died_of_old_age = 0; //reset the counter for each update
+    size_t INJECT_PARASITES_AT = GetParasiteInjectionUpdate();
 
     /* // Count how many parasites have at least one "Reproduce" instruction in their genome
     int parasites_with_reproduce = 0;
@@ -633,8 +672,7 @@ public:
           << parasites_with_reproduce << std::endl; */
 
 
-    //start with clearing parasite task flags, not host flags.
-    //when this is commented out, stuff works well! But that is a logic issue...
+    //start with clearing parasite's last solved tasks
     for (size_t i = 0; i < pop.size(); ++i) {
       if (IsOccupied(i) && pop[i]->HasParasite()) {
         // std::cout << "parasite at index " << i 
@@ -642,6 +680,19 @@ public:
         //           << std::endl;
         //pop[i]->GetParasite()->ClearTaskFlags();
         pop[i]->GetParasite()->GetCPU().state.last_solved_tasks.clear();
+
+        //if any task flags are true, add to parasite reproduction queue
+        if (pop[i]->GetParasite()->GetCPU().state.completed_NOT ||
+            pop[i]->GetParasite()->GetCPU().state.completed_NAND ||
+            pop[i]->GetParasite()->GetCPU().state.completed_AND ||
+            pop[i]->GetParasite()->GetCPU().state.completed_ORN ||
+            pop[i]->GetParasite()->GetCPU().state.completed_OR ||
+            pop[i]->GetParasite()->GetCPU().state.completed_ANDN ||
+            pop[i]->GetParasite()->GetCPU().state.completed_NOR ||
+            pop[i]->GetParasite()->GetCPU().state.completed_XOR ||
+            pop[i]->GetParasite()->GetCPU().state.completed_EQU) {
+          parasite_reproduce_queue.push_back(emp::WorldPosition(i));
+        }
       }
     }
 
@@ -652,7 +703,7 @@ public:
       if (!IsOccupied(i)) { continue; }
       //pop[i]->ClearTaskFlags();  
       pop[i]->Process(*this, i);
-      if (this->update_num <= 5) { //give the first 5 updates a bonus - set this as a variable
+      if (this->update_num <= 100) { //give the first 5 updates a bonus - set this as a variable
           pop[i]->AddPoints(5); 
         }
 
@@ -660,7 +711,7 @@ public:
         emp::Ptr<Parasite> parasite = pop[i]->GetParasite();
         //parasite->ClearTaskFlags(); // Clear parasite flags before processing
         parasite->Process(*this, i);
-        if ( ((this->update_num)-1500) < BONUS_UPDATE_LIMIT) { //2000 is when we inject the parasites
+        if ( ((this->update_num)-INJECT_PARASITES_AT) < BONUS_UPDATE_LIMIT && parasite_life_bonus) {
           // std::cout << "Parasite at index " << i 
           //           << " received mini bonus: " << parasite->GetPoints() 
           //           << std::endl;
@@ -681,49 +732,7 @@ public:
       }
     }
 
-    // Handle points for parasites and hosts that solved the same task
-    for (int i : schedule){
-      if (!IsOccupied(i)) { continue; }
-      emp::Ptr<Host> host = pop[i];
-      if (!host->HasParasite()) { continue; } // Skip if no parasite
-      emp::Ptr<Parasite> parasite = host->GetParasite();
-      //check if parasite deserves points
-      if (SolvedSameTask(host, parasite)) {
-        parasite->AddPoints(3 * GetVirulence() * GetReward()); //boosted by x3 - goal is to be able to remove this
-        if (this->update_num-1500 > BONUS_UPDATE_LIMIT) { //only punish host after a while
-          host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
-        }
-        std::cout << "Parasite at index " << i 
-                  << " solved the same task as host"
-                  << " and has now points: " << parasite->GetPoints() 
-                  << " (host points: " << host->GetPoints() << ")"
-                  << " adding to reproduction queue."
-                  << std::endl;
-        parasite_reproduce_queue.push_back(emp::WorldPosition(i)); // Add parasite to reproduction queue
-      }
-    }
-
-
-
-    //Time to allow reproduction for any organisms that ran the reproduce instruction
-    for (emp::WorldPosition location : reproduce_queue) {
-      if (!IsOccupied(location)) {
-        return;
-      }
-      emp::Ptr<Host> org = pop[location.GetIndex()];
-      std::optional<std::unique_ptr<Organism>> offspring =
-          org->CheckReproduction(host_mutation_rate);
-      if (offspring.has_value()) {
-        emp::Ptr<Host> host_offspring(dynamic_cast<Host*>(offspring.value().release()));
-        if (host_offspring) {
-          customDoBirth(host_offspring, location.GetIndex());
-          org->ResetAge();
-        }
-      }
-    }
-    reproduce_queue.clear();
-
-    //check for death after reproduction
+    //check for host death before parasite steals points
     for (int i : schedule) {
       if (!IsOccupied(i)) { continue; }
       emp::WorldPosition current_location(i);
@@ -742,6 +751,52 @@ public:
       }
     }
 
+    // Handle points for parasites and hosts that solved the same task
+    for (int i : schedule){
+      if (!IsOccupied(i)) { continue; }
+      emp::Ptr<Host> host = pop[i];
+      if (!host->HasParasite()) { continue; } // Skip if no parasite
+      emp::Ptr<Parasite> parasite = host->GetParasite();
+      //check if parasite deserves points
+      if (SolvedSameTask(host, parasite)) {
+        parasite->AddPoints(3 * GetVirulence() * GetReward()); //boosted by x3 - goal is to be able to remove this
+        if (this->update_num-INJECT_PARASITES_AT > (BONUS_UPDATE_LIMIT/2) || !host_protection) { //only punish host after a while
+          host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
+        }
+        std::cout << "Parasite at index " << i 
+                  << " solved the same task as host"
+                  << " and has now points: " << parasite->GetPoints() 
+                  << " (host points: " << host->GetPoints() << ")"
+                  << " adding to reproduction queue."
+                  << std::endl;
+        parasite_reproduce_queue.push_back(emp::WorldPosition(i)); // Add parasite to reproduction queue
+      }
+    }
+
+
+
+    //Time to allow reproduction for any organisms that ran the reproduce instruction
+    for (emp::WorldPosition location : reproduce_queue) {
+      if (!IsOccupied(location)) continue; // Skip if the location is not occupied
+      emp::Ptr<Host> org = pop[location.GetIndex()];
+      std::optional<std::unique_ptr<Organism>> offspring =
+          org->CheckReproduction(host_mutation_rate);
+          
+      if (offspring.has_value()) {
+        emp::Ptr<Host> host_offspring(dynamic_cast<Host*>(offspring.value().release()));
+        if (host_offspring) {
+          if (custom_birth){
+            customDoBirth(host_offspring, location.GetIndex());
+          } else {
+            DoBirth(*host_offspring, location.GetIndex());
+          }
+          org->AddPoints(-1); // Deduct points for reproduction
+          org->ResetAge();
+        }
+      }
+    }
+    reproduce_queue.clear();
+
     // Handle reproduction for parasites
     // this is last to ensure that parasites are injected into surviving host
     
@@ -751,18 +806,15 @@ public:
       if (IsOccupied(i) && !pop[i]->HasParasite()) {
         emp::Ptr<Host> host = pop[i];
         //initially allow all hosts to have parasites
-        // if (this->update-1500 < BONUS_UPDATE_LIMIT) {
-        //   viable_hosts.push_back(i);
-        // //ensure the host can solve tasks
-        // } else if (host->canSolveTask()) {
-        //   viable_hosts.push_back(i);
-        // }
-        if (host->canSolveTask()) {
+        if (this->update-INJECT_PARASITES_AT < BONUS_UPDATE_LIMIT && allow_all_hosts) {
+          viable_hosts.push_back(i);
+        //ensure the host can solve tasks
+        } else if (host->canSolveTask()) {
           viable_hosts.push_back(i);
         }
       }
     }
-    
+
     // For each parasite queued for reproduction, create offspring and inject into a random viable host
     emp::Random& rnd = GetRandom();
     std::cout << "parasite reproduction queue: " << parasite_reproduce_queue.size() << std::endl;
@@ -774,27 +826,37 @@ public:
       if (!host->HasParasite()) continue;
       emp::Ptr<Parasite> parasite = host->GetParasite();
 
-      //try to reproduce the parasite
-      std::optional<std::unique_ptr<Organism>> offspring =
-          parasite->CheckReproduction(parasite_mutation_rate);
-      if (offspring.has_value() && !viable_hosts.empty()) {
-        size_t idx = rnd.GetUInt(viable_hosts.size());
-        size_t host_pos = viable_hosts[idx];
-        viable_hosts.erase(viable_hosts.begin() + idx); // Don't reuse
-
-        // Move the unique_ptr into emp::Ptr<Parasite>
-        Parasite* parasite_offspring = dynamic_cast<Parasite*>(offspring.value().release());
-        pop[host_pos]->SetParasite(emp::Ptr<Parasite>(parasite_offspring));
-        // std::cout << "Parasite at index " << location.GetIndex() 
-        //           << " reproduced and infected host at index " << host_pos << std::endl;
-      } else if (offspring.has_value()) {
+      //try to reproduce the parasite until it can't anymore
+      while (parasite->GetPoints() > 10 && !viable_hosts.empty() && parasite_multiple_reproduction) {
         std::cout << "Parasite at index " << location.GetIndex() 
-                  << " attempted to reproduce but no viable hosts available." << std::endl;
-        // If no viable hosts, offspring is lost
-        // Properly delete the unique_ptr
-        offspring.value().reset();
+                  << " has " << parasite->GetPoints() << " points and will try to reproduce."
+                  << std::endl;
+
+        std::optional<std::unique_ptr<Organism>> offspring =
+            parasite->CheckReproduction(parasite_mutation_rate);
+        if (offspring.has_value() && !viable_hosts.empty()) {
+          size_t idx = rnd.GetUInt(viable_hosts.size());
+          size_t host_pos = viable_hosts[idx];
+          viable_hosts.erase(viable_hosts.begin() + idx); // Don't reuse
+
+          // Move the unique_ptr into emp::Ptr<Parasite>
+          Parasite* parasite_offspring = dynamic_cast<Parasite*>(offspring.value().release());
+          pop[host_pos]->SetParasite(emp::Ptr<Parasite>(parasite_offspring));
+          // std::cout << "Parasite at index " << location.GetIndex() 
+          //           << " reproduced and infected host at index " << host_pos << std::endl;
+        } else if (offspring.has_value()) {
+          std::cout << "Parasite at index " << location.GetIndex() 
+                    << " attempted to reproduce but no viable hosts available." << std::endl;
+          // If no viable hosts, offspring is lost
+          // Properly delete the unique_ptr
+          offspring.value().reset();
+        }
+        parasite->AddPoints(-1); // Deduct points for reproduction
+      } if (viable_hosts.empty()) {
+        std::cout << "No viable hosts left for parasite reproduction at index " 
+                  << location.GetIndex() << std::endl;
       }
-    }
+    } // End of parasite reproduction loop
 
     /* //loop over parasites and print their genome
     for (size_t i = 0; i < pop.size(); ++i) {
@@ -836,9 +898,9 @@ public:
         // Track all solved tasks this update
         state.last_solved_tasks.push_back(task->name());
         // Give bonus points and queue for reproduction if within bonus window
-        if (this->update_num - 1500 < BONUS_UPDATE_LIMIT) {
+        if (this->update_num - INJECT_PARASITES_AT < BONUS_UPDATE_LIMIT && parasite_task_bonus) {
           state.points += newPoints*2;
-          std::cout << "gave parasite bonus points and added it to reproduction queue" << std::endl;
+          std::cout << "gave parasite bonus task points and added it to reproduction queue" << std::endl;
           parasite_reproduce_queue.push_back(state.current_location);
         }
       }

@@ -57,6 +57,8 @@ int main(int argc, char *argv[]) {
   // Ensure SignalGP-Lite uses the same seed
   sgpl::tlrand.Get().ResetSeed(config.SEED());
 
+  size_t INJECT_PARASITES_UPDATE = config.INJECT_PARASITES_AT();
+
   
 
   // Inject starting organisms into the world
@@ -96,7 +98,7 @@ int main(int argc, char *argv[]) {
   for (int update = 0; update < config.NUM_UPDATES(); update++) {
     std::cout << "Calling update " << update << std::endl;
     world.Update();
-    if (update == 1500){
+    if (update == INJECT_PARASITES_UPDATE) {
       std::cout << "Injecting parasites" << std::endl;
       // Inject parasites into the world
 
