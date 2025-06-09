@@ -23,6 +23,10 @@ emp::web::Document doc("target");
 emp::web::Document settings("settings");
 emp::web::Document panel("panel");
 
+emp::web::Document explanation_doc("explanation");
+emp::web::Document paper_results_doc("paper_results");
+
+
 class BaselineAnimator : public emp::web::Animate {
   const int num_w_boxes = 32;
   const int num_h_boxes = 32;
@@ -46,14 +50,15 @@ public:
 
     SetupCanvasAndControls();
     SetupConfigPanel();
+    WriteExplanation();
+    WriteExplanationResults();
     InitializeWorld();
-    
     SetupReadoutPanel();
   }
 
   void DoFrame() override {
     if (update_count == 1500 && !parasites_injected) {
-      std::cout << "Injecting parasites at update 3000" << std::endl;
+      std::cout << "Injecting parasites at update 1500" << std::endl;
 
       for (int i = 0; i < config.NUM_PARASITES(); i++) {
         auto* parasite = new Parasite(world, -1.0);
@@ -249,7 +254,81 @@ private:
     );
     panel << values;
   }
+
+  void WriteExplanation(){
+    explanation_doc << R"(
+    <div style='max-width:520px;margin:1em 0;padding:1em;border:1px solid #ccc;border-radius:8px;background:#f9f9f9;'>
+      <h3>World Rules</h3>
+      <ul>
+        <li>
+          The world contains a population of digital <b>hosts</b> and <b>parasites</b>. Each organism has a <b>CPU</b> that runs a program (genome) and can solve logic tasks (e.g., NOT, NAND, AND, etc.).
+        </li>
+        <li>
+          <b>Hosts</b> and <b>parasites</b> earn <b>points</b> by solving tasks. Points affect their survival and ability to reproduce.
+        </li>
+        <li>
+          <b>Parasites</b> live inside hosts and can only reproduce by infecting new hosts. Parasite reproduction is triggered when they solve the <b>same task</b> as their host.
+        </li>
+        <li>
+          When a parasite solves the same task as its host, it earns bonus points and can reproduce. The <b>host loses points</b> proportional to the parasite's <b>virulence</b> (a parameter controlling how harmful the parasite is).
+        </li>
+        <li>
+          <b>Virulence</b> determines how many points are transferred from the host to the parasite when a parasite successfully exploits its host by solving the same task.
+        </li>
+        <li>
+          There is a <b>bonus period</b> (the "bonus time buffer") after parasites are first introduced. During this time, parasites receive extra points for solving tasks and do <b>not harm their hosts</b> (hosts do not lose points from parasite activity).
+        </li>
+        <li>
+          Organisms and parasites <b>age</b> and die after reaching a lifespan or if their points drop too low.
+        </li>
+        <li>
+          Reproduction is controlled by special instructions in the organism's program. Offspring inherit mutated copies of the parent's genome.
+        </li>
+        <li>
+          Task-solving and population statistics are tracked and displayed in the readout.
+        </li>
+      </ul>
+    </div>
+    )";
+  }
+
+  void WriteExplanationResults(){
+    paper_results_doc << R"(
+    <div style='max-width:520px;margin:1em 0;padding:1em;border:1px solid #ccc;border-radius:8px;background:#eef9f0;'>
+      <h3>Key Results from Zaman et. al. (2011)</h3>
+      <ul>
+        <li>
+          The study simulated coevolution between digital <b>hosts</b> and <b>parasites</b> in a grid-based environment, focusing on how <b>evolutionary dynamics</b> unfold when both species must solve logic tasks to reproduce.
+        </li>
+        <li>
+          <b>Parasites evolve rapidly</b> to exploit common host strategies by copying their task-solving behaviors, which forces hosts to constantly evolve <b>new solutions</b> to avoid exploitation.
+        </li>
+        <li>
+          This creates a continual arms race where hosts must "run just to stay in place" evolutionarily, leading to <b>ongoing innovation and diversity</b> in host genotypes.
+        </li>
+        <li>
+          Systems with <b>coevolving parasites</b> showed more consistent and prolonged adaptation compared to systems without parasites, where host evolution plateaued more quickly.
+        </li>
+        <li>
+          <b>Task diversity</b> in the population increases under coevolution. Hosts that can solve <b>unique or less common tasks</b> are harder for parasites to exploit and thus gain an advantage.
+        </li>
+        <li>
+          The study also found that turning off mutations after 100,000 updates lead to less diversity than without turning mutations off, but still found more novel variation than when parasites were not present.
+      </ul>
+      <h4>Configuration Highlights</h4>
+      <ul>
+        <li>Platform: **Avida** digital evolution system with grid-based world.</li>
+        <li>Tasks: Boolean logic functions (NOT, NAND, AND, OR, etc.).</li>
+        <li>Parasite infection: occurs when parasite and host solve **at least one overlapping task** (“inverse gene‑for‑gene” model) :contentReference[oaicite:6]{index=6}.</li>
+        <li>Reproduction: hosts and parasites reproduce asexually with mutation; parasites require infecting hosts (shared task) to replicate.</li>
+        <li>Experimental conditions: runs with and without parasites; with mutations always on, and with mutations stopped at 100k updates and optionally resumed.</li>
+        <li>Monitored over **200,000 updates**; diversity measured using **Shannon index**.</li>
+      </ul>
+    </div>
+    )";
+  }
 };
+
 
 BaselineAnimator animator;
 
