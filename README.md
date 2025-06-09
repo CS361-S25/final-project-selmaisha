@@ -48,7 +48,7 @@ You can adjust the simulation using the panel on the web interface. For best res
 
 This simulation is based on the methods described in:
 
-> Zaman, L., Meyer, J. R., Devangam, S., Bryson, D. M., Lenski, R. E., & Ofria, C. (2014). *Coevolution drives the emergence of complex traits and promotes evolvability*. 
+> Zaman, Luis, Suhas Devangam, and Charles Ofria. “Rapid Host-Parasite Coevolution Drives the Production and Maintenance of Diversity in Digital Organisms” 176 (July 12, 2011): 219–26. https://doi.org/10.1145/2001576.2001607.
 
 ---
 
