@@ -1,43 +1,54 @@
-Selma and Isha
+# Host–Parasite Coevolution Simulation
 
-We look at parasite stuff
+This project is a digital evolution simulation inspired by *Zaman et al. (2014)*, modeling the ecological and evolutionary dynamics between **hosts** and **parasites** in a structured grid world. Both organisms are capable of solving Boolean logic tasks using virtual CPUs, and parasites evolve to exploit hosts by mimicking their task solutions.
 
-# Host-Parasite Coevolution Simulation
+The simulation is web-based and interactive, allowing users to visualize coevolution in real-time and adjust parameters through a dynamic config panel.
 
-This project simulates digital evolution using hosts and parasites that solve logic tasks to survive and reproduce. Inspired by Zaman et al. (2011), the model explores how coevolution drives phenotypic diversity and innovation in a grid-based digital environment.
+---
 
-This project implements a digital evolution simulation using SignalGP-Lite and the Empirical framework. It explores how host-parasite coevolution impacts phenotypic diversity, based on the experimental setup from Zaman et al. (2011). The system simulates digital organisms (hosts and parasites) evolving in a grid-based world by solving logic tasks to survive and reproduce.
+##  Simulation Overview
 
-## Overview
+- **Hosts** live in grid cells, reproduce asexually, and solve logic tasks (e.g., `NOT`, `AND`, `EQU`) to earn points and survive.
+- **Parasites** infect hosts, gain points by solving the same task as their host, and reduce the host's points based on a configurable virulence value.
+- **Bonus period**: After injection, parasites are temporarily boosted to help them establish a population.
+- Organisms age, die, and mutate based on configurable lifespan and mutation rates.
 
-- Hosts and parasites execute logic-based programs using SignalGP-Lite.
-- Organisms earn points by solving Boolean logic tasks (e.g., NOT, NAND, AND...).
-- Parasites live inside hosts and reproduce only when solving the **same task** as their host.
-- The simulation tracks ecological and evolutionary dynamics including task diversity, population sizes, and parasite virulence.
+---
 
-## Key Features
+##  Web Interface Features
 
-- **Task-Based Color Visualization**: Organisms are color-coded by the hardest task they solve.
-- **Web + Native Modes**: Run in browser via WebAssembly or as a native C++ simulation.
-- **Interactive Config Panel**: Adjust parameters like mutation rate, parasite virulence, injection timing, etc.
-- **Bonus Period**: Parasites receive initial bonuses and temporarily don’t harm their host.
-- **Diversity Tracking**: Optional data collection for Shannon diversity or task frequency over time.
+- **Config Panel**: Adjust parameters such as mutation rate, parasite virulence, lifespan, number of parasites, and more.
+- **Live Grid Visualization**: Hosts are shown as colored squares; parasites appear as red-outlined circles.
+- **Readout Panel**: Real-time statistics including task solvers, parasite counts, and update step.
+- **Explanations and Results**: Includes descriptions of simulation rules and summaries from related academic research.
 
+---
 
+##  Recommended Settings
 
+You can adjust the simulation using the panel on the web interface. For best results and a stable coevolutionary dynamic, we recommend the following values:
 
+| Setting                   | Value   | Explanation                                                                 |
+|---------------------------|---------|-----------------------------------------------------------------------------|
+| `Num Start`              | `10`    | Initial number of host organisms                                           |
+| `Mutation Rate`          | `0.02`  | Mutation rate for host reproduction                                        |
+| `Parasite Mutation Rate` | `0.04`  | Mutation rate for parasite reproduction                                    |
+| `Num Updates`            | `4000`  | How many updates the simulation will run                                   |
+| `Reward`                 | `20`    | Points earned for solving a logic task                                     |
+| `Num Boxes`              | `20`    | Grid dimension (20 × 20 world size)                                        |
+| `Life Span`              | `30`    | Max age before organism dies                                               |
+| `Virulence`              | `0.8`   | How harmful parasites are to hosts when solving the same task              |
+| `Num Parasites`          | `30`    | Number of parasites injected into the world                                |
+| `Inject Parasites At`    | `1500`  | Update step at which parasites are introduced                              |
+| `Bonus Update Limit`     | `2000`  | Duration for which parasite bonus features (e.g., protection) are enabled  |
 
+---
 
-## Reference
+## 📚 Reference
 
-This simulation is based on:
+This simulation is based on the methods described in:
 
-Zaman, L., et al. (2011). Rapid host-parasite coevolution drives the production and maintenance of diversity in digital organisms. Nature, 459(7245), 274–277.
+> Zaman, L., Meyer, J. R., Devangam, S., Bryson, D. M., Lenski, R. E., & Ofria, C. (2014). *Coevolution drives the emergence of complex traits and promotes evolvability*. 
 
-## Authors
+---
 
-Isha Patel
-
-Selma Vangstein
-
-Developed for CS361: Artificial Life and Digital Evolution, Spring 2025 — Carleton College.

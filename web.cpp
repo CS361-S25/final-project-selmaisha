@@ -33,11 +33,14 @@ emp::web::Document paper_results_doc("paper_results");
  * Purpose: Initialize the animation, world, UI controls, and configuration panel
  */
 class BaselineAnimator : public emp::web::Animate {
-  const int num_w_boxes = 32;
-  const int num_h_boxes = 32;
-  const double RECT_SIDE = 15;
-  const double width = num_w_boxes * RECT_SIDE;
-  const double height = num_h_boxes * RECT_SIDE;
+
+  int num_boxes = 32;
+  double canvas_max_px = 600.0;
+  double RECT_SIDE = canvas_max_px / 15;
+
+  double width = canvas_max_px;
+  double height = canvas_max_px;
+
   int update_count = 0;
 
   bool parasites_injected = false;
@@ -46,9 +49,11 @@ class BaselineAnimator : public emp::web::Animate {
   emp::Ptr<OrgWorld> world;
 
   emp::web::Canvas canvas{width, height, "canvas"};
+  emp::prefab::ConfigPanel config_panel;
 
 public:
-  BaselineAnimator() {
+  BaselineAnimator() 
+  : config_panel(config) {
     ApplyConfigFromArgs();  // Load from URL if available
     random.New(config.SEED());
     world.New(*random, &config);
@@ -59,6 +64,7 @@ public:
     WriteExplanationResults();
     InitializeWorld();
     SetupReadoutPanel();
+    WriteRecommendedSettings();
   }
 
   /**
@@ -68,20 +74,23 @@ public:
   * Purpose: Main update loop for each animation frame. Injects parasites and updates world state.
   */
   void DoFrame() override {
-    if (update_count == 1500 && !parasites_injected) {
-      std::cout << "Injecting parasites at update 1500" << std::endl;
-
-      for (int i = 0; i < config.NUM_PARASITES(); i++) {
-        auto* parasite = new Parasite(world, -1.0);
-        parasite->setVirulence(config.VIRULENCE());
-        world->InjectParasite(parasite);
-      }
-
-      parasites_injected = true;
+    if (update_count >= config.NUM_UPDATES()) {
+      this->Stop();
     }
-    world->Update();
-    update_count++;
-    Draw();
+    if (update_count == config.INJECT_PARASITES_AT() && !parasites_injected) {
+      std::cout << "Injecting parasites at update " << update_count << std::endl;
+
+        for (int i = 0; i < config.NUM_PARASITES(); i++) {
+          auto* parasite = new Parasite(world, -1.0);
+          parasite->setVirulence(config.VIRULENCE());
+          world->InjectParasite(parasite);
+        }
+
+        parasites_injected = true;
+      }
+      world->Update();
+      update_count++;
+      Draw();
   }
 
 private:
@@ -135,6 +144,10 @@ private:
     config_panel.SetRange("LIFE_SPAN", "1", "1000", "1");
     config_panel.SetRange("VIRULENCE", "0", "5", "0.1");
     config_panel.SetRange("INJECT_PARASITES_AT", "0", "20000", "500");
+    config_panel.SetRange("NUM_PARASITES", "0", "1000", "1");
+    config_panel.SetRange("BONUS_UPDATE_LIMIT", "0", "20000", "500");
+    config_panel.SetRange("NUM_UPDATES", "1", "100000", "1000");
+    config_panel.SetRange("NUM_BOXES", "1", "100", "1");
 
     settings << config_panel;
   }
@@ -146,8 +159,16 @@ private:
   * Purpose: Configure the world structure, resize the grid, and populate with initial hosts
   */
   void InitializeWorld() {
-    world->SetPopStruct_Mixed();
-    world->Resize(num_h_boxes, num_w_boxes);
+
+    // world->SetPopStruct_Mixed();
+    // world->Resize(num_h_boxes, num_w_boxes);
+    num_boxes = config.NUM_BOXES();
+    RECT_SIDE = canvas_max_px / num_boxes;
+    width = height = canvas_max_px;
+    canvas.SetWidth(width);
+    canvas.SetHeight(height);
+
+    world->Resize(num_boxes, num_boxes);
     for (int i = 0; i < config.NUM_START(); ++i) {
       size_t pos = world->GetRandom().GetUInt(world->GetSize());
       Host* host = new Host(world, 0);
@@ -184,8 +205,8 @@ private:
     const auto& pop = world->GetPopulation();
     size_t org_num = 0;
 
-    for (int x = 0; x < num_w_boxes; ++x) {
-      for (int y = 0; y < num_h_boxes; ++y) {
+    for (int x = 0; x < num_boxes; ++x) {
+      for (int y = 0; y < num_boxes; ++y) {
         if (world->IsOccupied(org_num)) {
           const auto& org_ptr = pop[org_num];
           if (org_ptr) {
@@ -344,7 +365,38 @@ private:
     )";
   }
 
-  
+/**
+ * WriteRecommendedSettings
+ * Input: none
+ * Output: none
+ * Purpose: Display a styled info box in the explanation section that suggests recommended
+ *          configuration values for running the simulation. These values are tuned to 
+ *          demonstrate meaningful coevolutionary dynamics between hosts and parasites.
+ */
+  void WriteRecommendedSettings() {
+    explanation_doc << R"(
+      <div style='max-width:520px;margin:1em 0;padding:1em;border:1px solid #ddd;border-radius:8px;background:#f1faff;'>
+        <h3>🔧 Recommended Simulation Settings</h3>
+        <ul>
+          <li><b>NUM_START = 10</b> — Start with 10 hosts.</li>
+          <li><b>MUTATION_RATE = 0.02</b> — Host mutation rate.</li>
+          <li><b>PARASITE_MUT_RATE = 0.04</b> — Parasite mutation rate.</li>
+          <li><b>NUM_UPDATES = 4000</b> — Length of simulation.</li>
+          <li><b>REWARDED = 20</b> — Points per task solved.</li>
+          <li><b>NUM_BOXES = 20</b> — Grid size: 20x20.</li>
+          <li><b>LIFE_SPAN = 30</b> — Organism lifespan.</li>
+          <li><b>VIRULENCE = 0.8</b> — Parasite strength.</li>
+          <li><b>NUM_PARASITES = 100</b> — Initial number of parasites.</li>
+          <li><b>INJECT_PARASITES_AT = 1500</b> — Injection time.</li>
+          <li><b>BONUS_UPDATE_LIMIT = 2000</b> — Parasite grace period.</li>
+        </ul>
+        <p style="font-style: italic; color: #333;">
+          These values support stable host-parasite coevolution and task diversity.
+        </p>
+      </div>
+    )";
+  }
+
   /**
   * WriteExplanationResults
   * Input: none
