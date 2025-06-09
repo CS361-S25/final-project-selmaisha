@@ -8,14 +8,14 @@ This project simulates digital evolution using hosts and parasites that solve lo
 
 This project implements a digital evolution simulation using SignalGP-Lite and the Empirical framework. It explores how host-parasite coevolution impacts phenotypic diversity, based on the experimental setup from Zaman et al. (2011). The system simulates digital organisms (hosts and parasites) evolving in a grid-based world by solving logic tasks to survive and reproduce.
 
-## 💡 Overview
+## Overview
 
 - Hosts and parasites execute logic-based programs using SignalGP-Lite.
 - Organisms earn points by solving Boolean logic tasks (e.g., NOT, NAND, AND...).
 - Parasites live inside hosts and reproduce only when solving the **same task** as their host.
 - The simulation tracks ecological and evolutionary dynamics including task diversity, population sizes, and parasite virulence.
 
-## 🧬 Key Features
+## Key Features
 
 - **Task-Based Color Visualization**: Organisms are color-coded by the hardest task they solve.
 - **Web + Native Modes**: Run in browser via WebAssembly or as a native C++ simulation.
@@ -23,21 +23,18 @@ This project implements a digital evolution simulation using SignalGP-Lite and t
 - **Bonus Period**: Parasites receive initial bonuses and temporarily don’t harm their host.
 - **Diversity Tracking**: Optional data collection for Shannon diversity or task frequency over time.
 
-## 🚀 Getting Started
-
-### Web Version
-To compile and run in a browser:
-```bash
-./compile-run-web.sh
 
 
-Reference
+
+
+
+## Reference
 
 This simulation is based on:
 
 Zaman, L., et al. (2011). Rapid host-parasite coevolution drives the production and maintenance of diversity in digital organisms. Nature, 459(7245), 274–277.
 
- Authors
+## Authors
 
 Isha Patel
 
