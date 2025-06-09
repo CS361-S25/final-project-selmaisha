@@ -117,3 +117,22 @@ Current main issues:
 - We almost never see [PARASITE] solved a task, even though CheckOutput is called on parasites
 - Parasites are initially doing ok, but then suddenly they stop reproduction
 - Seems like the number of hosts that die of old age is being reduced with time as well - are hosts also having trouble reproducing..?
+
+
+Todos before submitting:
+- GUI stuff:
+    - Have a legend that says which task is which color, or color coude the text of the readout values
+    - Have text explaining the setup and our recommended settings
+    - Have text describing the paper results, and maybe what the user can expect when adjusting the settings, or need to be aware of
+    - Make sure parasite viewing is also working (color coded for tasks as well)
+
+- Code cleanup:
+    - Abstract functions, delete unused code, add comments
+    - Make more values configurable (when to inject parasites for instance)
+
+- Report:
+    - Results of basic controlled experiment - shannon entropy with vs without parasites
+    - If time: results when turning off mutations after N runs
+    - We need to try to extend the paper - so results when adjusting the virulence - try like 5 different values, keep everything else the same
+    - An overview over all the adaptations we have made to the paper method (a lot of those changes are outlined above)
+    - 
