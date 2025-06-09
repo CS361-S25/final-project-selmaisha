@@ -4,14 +4,16 @@
 #include "emp/Evolve/World_structure.hpp"
 #include <cstddef>
 
-// This forward declaration is necessary since the world contains organisms,
-// which contain CPUs, which contain the state. If OrgState included the full
-// definition of OrgWorld, it would cause a circular dependency.
+/**
+ * Forward declaration of OrgWorld to avoid circular dependency.
+ * OrgWorld includes Organisms → CPUs → OrgState → (back to OrgWorld).
+ */
 class OrgWorld;
 
 /**
- * Struct representing the state of a digital organism's CPU.
- * Stores world reference, inputs, position, and task completion flags.
+ * OrgState
+ * Represents the internal state of an organism’s CPU.
+ * Tracks inputs, world position, age, points, and task completion flags.
  */
 struct OrgState {
   emp::Ptr<OrgWorld> world;  ///< Pointer to the world the organism belongs to
@@ -38,7 +40,11 @@ struct OrgState {
 
   std::vector<std::string> last_solved_tasks;
 
-  // In OrgState.h
+  /**
+   * input: none
+   * output: bool
+   * purpose: Check if any logic task has been completed.
+   */
   bool HasCompletedAnyTask() const {
     return completed_NOT || completed_NAND || completed_AND ||
           completed_ORN || completed_OR || completed_ANDN ||

@@ -8,8 +8,9 @@
 #include "sgpl/spec/Spec.hpp"
 
 /**
- * Represents the virtual CPU and the program genome for an organism in the SGP
- * mode.
+ * CPU
+ * Represents the virtual CPU and genome for an organism in the SignalGP-Lite system.
+ * Handles task execution, mutation, and internal state management.
  */
 class CPU {
   sgpl::Cpu<Spec> cpu;
@@ -25,8 +26,6 @@ class CPU {
    */
   void InitializeState() {
     cpu.InitializeAnchors(program);
-    // Fill the input buffer with random values so they can't cheat and exploit
-    // the zeroes that would otherwise be here (e.g. 0^2 is just 0)
     for (int i = 0; i < 4; i++) {
       state.last_inputs[i] = sgpl::tlrand.Get().GetUInt();
     }
@@ -37,14 +36,20 @@ public:
 
   
   /**
-   * Constructs a new CPU for an ancestor organism with a random genome.
+   * CPU
+   * input: emp::Ptr<OrgWorld> world
+   * output: none
+   * purpose: Constructor that initializes a new CPU with a random program.
    */
   CPU(emp::Ptr<OrgWorld> world) : program(100), state{world} {
     InitializeState();
   }
 
   /**
-   * Constructs a new CPU with a copy of an existing genome.
+   * CPU
+   * input: emp::Ptr<OrgWorld> world, const sgpl::Program<Spec>& program
+   * output: none
+   * purpose: Constructor that initializes a new CPU with a specified genome.
    */
   CPU(emp::Ptr<OrgWorld> world, const sgpl::Program<Spec> &program)
       : program(program), state{world} {
@@ -53,9 +58,7 @@ public:
 
   /**
    * Input: None
-   *
    * Output: None
-   *
    * Purpose: Resets the CPU to its initial state.
    */
   void Reset() {
@@ -66,9 +69,7 @@ public:
 
   /**
    * Input: The number of CPU cycles to run.
-   *
    * Output: None
-   *
    * Purpose: Steps the CPU forward a certain number of cycles.
    */
   void RunCPUStep(size_t n_cycles) {
@@ -81,9 +82,7 @@ public:
 
   /**
    * Input: None
-   *
    * Output: None
-   *
    * Purpose: Mutates the genome code stored in the CPU.
    */
   void Mutate(double mutation_rate) {
@@ -91,20 +90,22 @@ public:
     InitializeState();
   }
 
+
+  /**
+   * LoadProgram
+   * input: const sgpl::Program<Spec>& prog
+   * output: none
+   * purpose: Overwrites the current program with a new one and reinitializes CPU state.
+   */
   void LoadProgram(const sgpl::Program<Spec>& prog) {
     program = prog;
     InitializeState();  // resets anchors, seeds input, etc.
   }
-  // OrgState& GetState() { return state; }
-  // const OrgState& GetState() const { return state; }
-
 
 
   /**
    * Input: None
-   *
    * Output: Returns the CPU's program
-   *
    * Purpose: Get the genome (program) of an Organism from its CPU
    */
   const sgpl::Program<Spec> &GetProgram() const { return program; }
@@ -113,9 +114,7 @@ public:
 private:
   /**
    * Input: The instruction to print, and the context needed to print it.
-   *
    * Output: None
-   *
    * Purpose: Prints out the human-readable representation of a single
    * instruction.
    */
@@ -173,9 +172,7 @@ private:
 public:
   /**
    * Input: None
-   *
    * Output: None
-   *
    * Purpose: Prints out a human-readable representation of the program code of
    * the organism's genome to standard output.
    */

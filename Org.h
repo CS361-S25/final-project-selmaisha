@@ -6,16 +6,17 @@
 #include "emp/Evolve/World_structure.hpp"
 
 /**
- * Class representing a digital organism with an internal CPU for behavior,
- * capable of processing tasks, accumulating points, mutating, and reproducing.
+ * Organism
+ * Represents a digital organism with an internal CPU used for processing tasks,
+ * gaining points, mutating, and reproducing within a simulated environment.
  */
 class Organism {
   CPU cpu;  // Internal CPU object handling behavior and state
 
 public:
   /**
-   * Constructor
-   * input: Pointer to OrgWorld (world), optional initial points
+   * Organism Constructor
+   * input: Pointer to OrgWorld (world),double points, bool isParasite
    * output: Organism instance
    * purpose: Initialize organism with a CPU and optional starting points
    */
@@ -28,15 +29,35 @@ public:
   virtual ~Organism() = default;
 
   /**
+   * GetCPU
    * input: none
-   * output: Copy of internal CPU
-   * purpose: Access the organism's CPU object
+   * output: CPU (copy)
+   * purpose: Return a copy of the internal CPU
    */
   CPU GetCPU() { return cpu; }
+
+  /**
+   * GetCPU
+   * input: none
+   * output: const CPU& (reference)
+   * purpose: Return a const reference to the internal CPU
+   */
   const CPU& GetCPU() const { return cpu; }
 
-  // In Organism, Host, and Parasite classes
+   /**
+   * GetCPURef
+   * input: none
+   * output: CPU& (reference)
+   * purpose: Return a mutable reference to the internal CPU  // In Organism, Host, and Parasite classes
+   */
   CPU & GetCPURef() { return cpu; }
+
+  /**
+   * GetCPURef
+   * input: none
+   * output: const CPU& (reference)
+   * purpose: Return a const reference to the internal CPU
+   */
   const CPU & GetCPURef() const { return cpu; }
 
   /**
@@ -74,18 +95,42 @@ public:
    */
   void Mutate(double mutation_rate) { cpu.Mutate(mutation_rate); }
 
+  /**
+   * IsDead
+   * input: double max_age
+   * output: bool
+   * purpose: Check if the organism is dead due to age or low points
+   */
   bool IsDead(double max_age) { //might have to add virtual here
     return (cpu.state.age > max_age || cpu.state.points < 0.0);
   }
 
+  /**
+   * ResetAge
+   * input: none
+   * output: none
+   * purpose: Reset the organism’s age to zero
+   */
   void ResetAge() {
     cpu.state.age = 0;
   }
 
+  /**
+   * Clone
+   * input: none
+   * output: std::unique_ptr<Organism>
+   * purpose: Create a copy of this organism
+   */
   virtual std::unique_ptr<Organism> Clone() const {
     return std::make_unique<Organism>(*this);
 }
 
+   /**
+   * ClearTaskFlags
+   * input: none
+   * output: none
+   * purpose: Reset all task completion flags for the organism
+   */
   void ClearTaskFlags() {
     cpu.state.completed_NOT = false;
     cpu.state.completed_NAND = false;
@@ -98,6 +143,12 @@ public:
     cpu.state.completed_EQU = false;
   }
 
+   /**
+   * canSolveTask
+   * input: none
+   * output: bool
+   * purpose: Check if the organism has completed any task
+   */
   bool canSolveTask() const {
     return cpu.state.completed_NOT || cpu.state.completed_NAND || cpu.state.completed_AND ||
            cpu.state.completed_ORN || cpu.state.completed_OR || cpu.state.completed_ANDN ||
@@ -116,14 +167,12 @@ public:
     return offspring;
 }
 
-  /* std::optional<Organism> CheckReproduction(double mutation_rate) {
-    Organism offspring = *this;
-    offspring.Reset();
-    offspring.Mutate(mutation_rate);
-    return offspring;
-    return {};
-  } */
-
+  /**
+    * GetTaskColor
+    * input: none
+    * output: std::string
+    * purpose: Get a color representing the most complex task completed
+    */
   std::string GetTaskColor() const { // changed it to prioritize based on task difficulty
     if (cpu.state.completed_EQU) return "brown";
     if (cpu.state.completed_XOR) return "cyan";
@@ -137,8 +186,7 @@ public:
     return "black";
   }
 
-  //assuming for now that only one task can be solved at a time
-  //come back to this later if needed
+
   /**
    * input: none
    * output: string (name of the solved task)
@@ -162,9 +210,7 @@ public:
    * output: none
    * purpose: Run a CPU step to process tasks at the given world location
    */
-  // void Process(emp::WorldPosition current_location) {
   virtual void Process(OrgWorld& world, size_t id) {
-    // cpu.state.current_location = current_location;
     cpu.state.current_location = emp::WorldPosition(id);
     cpu.state.age++;
     cpu.RunCPUStep(10);
