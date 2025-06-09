@@ -1,0 +1,120 @@
+We use the settings:
+set SEED 3                      # What value should the random seed be?
+set NUM_START 10                # How many starting organisms?
+set MUTATION_RATE 0.02          # What is the mutation rate?
+set NUM_UPDATES 12000            # How many updates to run?
+set REWARD 20                   # What is the reward for completing a task?
+set NUM_BOXES 50                # How many boxes is on one side the world?
+set LIFE_SPAN 15                # How many updates without reproduction before an organism dies?
+set NUM_PARASITES 100           # How many parasites to spawn?
+set VIRULENCE 0.8               # How virulent are the parasites?
+set PARASITE_MUTATION_RATE 0.04 # What is the mutation rate for parasites?
+set BONUS_UPDATE_LIMIT 500     # After how many updates should the host be punished for parasite reproduction?
+
+Note that shannon index is calculated for hosts only, like in the paper.
+
+run 1: seed 3
+run 2: seed 4
+run 3: seed 6
+
+no parasites
+Shannon entropy is:
+- 0.415
+- 0.378
+- 0.535
+Mostly andn and some others
+
+virulence 0.0
+shannon 
+- 0.384
+- 0.388
+- 0.517
+
+virulence 0.2
+shannon 
+- 0.420
+- 0.376
+- 0.540
+
+virulence 0.4
+shannon: 
+- 0.399
+- 0.400
+- 0.404
+
+virulence 0.6
+shannon 
+- 0.389
+- 0.394
+- 0.535
+
+virulence 0.8
+We get a shannon entropy index of 
+- 0.535
+- 0.561
+- 0.391
+Orgs are dominated by andn, but then AND rises
+But in the third run AND suddenly dies out, which decreases the entropy
+
+virulence 1.0
+Shannon entropy:
+- 0.382
+- 0.376
+- 0.401
+Probably because they don't allow the parasites to evolve much
+
+virulence 1.2
+shannon:
+- 0.398
+- 0.573
+- 0.585
+This one is interesting! Look at the plots - AND solvers suddenly rises in run 3. In run 2 they also do that, but the parasite goes extinct at the same time - they survive in run 3
+
+
+QUESTION: Did paper parasites steal 80% of all of the hosts points, or of the task reward? We did task reward. If paper did of all points, comment on this.
+    This could also be a factor why our parasites would affect them less.
+
+
+WE STILL NEED some kind of analysis of the effect of the virulence. Maybe make plot of average shannon as fcn of virulence
+- Hypthesis: too low should be similar to w/o parasites, too high should limit evolution so that should also be lower shannon. middle-ish is just good, maybe upper-middle because
+    our parasites have less of an effect than the paper ones.
+
+In some experiments the parasite population went extinct - that is ok. They still had some time to affect the hosts, so that is still interesting, but be aware of it in analysis.
+
+NOTE: comment on how the initial baseline test was faulty because of task bug, or just delete it and replace it with our "no parasites" test here.
+ALSO comment on the fact that there are currently larger variations within groups of same virulence than between them, meaning that more tests are needed to determine anything, and a
+system where the parasites have a larger effect would also be a lot better
+
+Another difference is that the paper managed to have about an 80% saturation of their world, while most of our runs ended up being close to 100%. We found that we needed to prioritize having a 
+lot of task solvers to have enough space for the parasites to survive.
+
+Why different/why have we made changes?
+- The parasite/host ecosystem is very fragile and need to be very specifically tuned for the parasite population to survive
+- In the paper, a parasite was only injected into a host if the two solved the same task. For us, a task solver won't solve a task every single update,
+    so a parasite need to live for a while before we can determine which tasks if any it is able to solve. The parasite offspring were therefore instead injected 
+    into a random task solving host, and rather killed off after some number of updates if it hadn't yet solved a task. This way of handeling parasite reproduction
+    lowers the probability that a parasite solves the same task as its host, which is one reason why our parasite population is so fragile.
+- We had to add in extra features to promote parasite survival and reproduction
+- These changes puts less pressure on parasites, but it also inhibits evolution somewhat, meaning that there is less pressure on the hosts to adapt,
+    which is why we might see smaller changes
+- In both host and parasite populations we see that pretty early on their population drops dramatically before a critical mass knows how to reproduce well.
+    The trick is to overcome this dip. For the parasites it was difficult to build a large enough population that still has room to reproduce, because their population
+    size is limited by the number of host task solvers.
+- We tried having an initial phase where all hosts could be infected by a parasite even if it wasn't a task solver, but then parasites don't learn to solve the same tasks 
+    as their hosts, so it became very difficult for them to survive when the eligible hosts became restricted again
+
+Important changes:
+- Every parasite that can solve a task is added to the reproduction queue every update
+- Every parasite that can solve a task get a point each update for surviving
+- We now have a bonus-stage for our parasites - for a given number (500 in our experiments) of updates after parasite injection, we are kinder to the 
+    system. By this we mean that parasites don't harm their hosts, all parasites get some bonus points, and they get more points for just solving tasks
+    - How big these effects are and how long they last varies (some last bonus_time*2, others bonus_time/2 for instance), but is fine tuned to get a sustain parasite population even after this period
+- Mentioned above: parasite offspring are injected into a random task solving host and killed off after some number of updates if it has not solved a task. In the paper a parasite was injected into a 
+    host that solved the same task as the parasite, but we can't determine what tasks the parasite will be able to solve at birth.
+- Cost of reproduction for both hosts and parasites are lowered - this is to encourage more reproduction do get larger populations that have higher probabilites to survive
+- Parasites produce multiple offspring per update - every time it is their turn to reproduce, they repeatedly produce offspring until they no longer have enough points
+- All organisms get the tasks ANDN injected at birth. The paper started with NOT, but ANDN seemed easier for our organisms.
+- Our hosts are also boosted with some points just for surviving initially. We found it more effective to start with a smaller population and get them reproducing right off the bat, rather than start with
+    a larger population and wait for them to hopefully solve some tasks
+- changed how host offspring are placed: we pick a position at random, like before. But now, if there is a task solving host at that position, we choose again. This second choice is the final choice, no matter
+    what might live at that position. This will decrease the probability of overwriting a task solver, and then get a higher ratio of task solvers in our population, which gives more space for our parasites
