@@ -38,7 +38,7 @@ You can adjust the simulation using the panel on the web interface. For best res
 | `Num Boxes`              | `20`    | Grid dimension (20 × 20 world size)                                        |
 | `Life Span`              | `30`    | Max age before organism dies                                               |
 | `Virulence`              | `0.8`   | How harmful parasites are to hosts when solving the same task              |
-| `Num Parasites`          | `30`    | Number of parasites injected into the world                                |
+| `Num Parasites`          | `100`    | Number of parasites injected into the world                                |
 | `Inject Parasites At`    | `1500`  | Update step at which parasites are introduced                              |
 | `Bonus Update Limit`     | `2000`  | Duration for which parasite bonus features (e.g., protection) are enabled  |
 
