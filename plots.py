@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv('worlddata.csv')
 
-def plot_population(df):
+
+def plot_tasks(df):
     plt.figure(figsize=(12, 6))
     #plt.plot(df['update'], df['org'], label='Organisms', color='blue')
     plt.plot(df['update'], df['not'], label='not', color='green')
@@ -35,5 +35,60 @@ def plot_population(df):
     plt.savefig('population_plot.png')
     #plt.show()
 
+def plot_orgs(df):
+    plt.figure(figsize=(12, 6))
+    plt.plot(df['update'], df['org'], label='Organisms', color='blue')
+    plt.plot(df['update'], df['not'], label='not', color='green')
+    plt.plot(df['update'], df['nand'], label='nand', color='orange')
+    plt.plot(df['update'], df['and'], label='and', color='cyan')
+    plt.plot(df['update'], df['or'], label='or', color='magenta')
+    plt.plot(df['update'], df['andn'], label='andn', color='lime')
+    plt.plot(df['update'], df['orn'], label='orn', color='yellow')
+    plt.plot(df['update'], df['nor'], label='nor', color='purple')
+    plt.plot(df['update'], df['xor'], label='xor', color='brown')
+    plt.plot(df['update'], df['equ'], label='equ', color='pink')
+    plt.xlabel('Updates')
+    plt.ylabel('Population')
+    plt.title('Organism Population Over Time')
+    plt.legend()
+    plt.grid()
+    plt.savefig('organism_plot.png')
+    #plt.show()
 
+def plot_parasites(df):
+    plt.figure(figsize=(12, 6))
+    plt.plot(df['update'], df['parasites'], label='Parasites', color='red')
+    plt.plot(df['update'], df['parasite_not'], label='not', color='green')
+    plt.plot(df['update'], df['parasite_nand'], label='nand', color='orange')
+    plt.plot(df['update'], df['parasite_and'], label='and', color='cyan')
+    plt.plot(df['update'], df['parasite_or'], label='or', color='magenta')
+    plt.plot(df['update'], df['parasite_andn'], label='andn', color='lime')
+    plt.plot(df['update'], df['parasite_orn'], label='orn', color='yellow')
+    plt.plot(df['update'], df['parasite_nor'], label='nor', color='purple')
+    plt.plot(df['update'], df['parasite_xor'], label='xor', color='brown')
+    plt.plot(df['update'], df['parasite_equ'], label='equ', color='pink')
+    plt.xlabel('Updates')
+    plt.ylabel('Population')
+    plt.title('Parasite Population Over Time')
+    plt.legend()
+    plt.grid()
+    plt.savefig('parasite_plot.png')
+    #plt.show()
+
+def plot_population(df):
+    plt.figure(figsize=(12, 6))
+    plt.plot(df['update'], df['org'], label='Organisms', color='blue')
+    plt.plot(df['update'], df['parasites'], label='Parasites', color='red')
+    plt.xlabel('Updates')
+    plt.ylabel('Population')
+    plt.title('Total Population Over Time')
+    plt.legend()
+    plt.grid()
+    plt.savefig('total_population_plot.png')
+    #plt.show()
+
+df = pd.read_csv('worlddata.csv')
+plot_tasks(df)
 plot_population(df)
+plot_orgs(df)
+plot_parasites(df)

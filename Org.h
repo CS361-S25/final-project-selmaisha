@@ -35,6 +35,10 @@ public:
   CPU GetCPU() { return cpu; }
   const CPU& GetCPU() const { return cpu; }
 
+  // In Organism, Host, and Parasite classes
+  CPU & GetCPURef() { return cpu; }
+  const CPU & GetCPURef() const { return cpu; }
+
   /**
    * input: double _in (points)
    * output: none
@@ -71,7 +75,7 @@ public:
   void Mutate(double mutation_rate) { cpu.Mutate(mutation_rate); }
 
   bool IsDead(double max_age) { //might have to add virtual here
-    return (cpu.state.age > max_age && cpu.state.points<=0.0);
+    return (cpu.state.age > max_age || cpu.state.points < 0.0);
   }
 
   void ResetAge() {

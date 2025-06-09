@@ -14,6 +14,8 @@ EMP_BUILD_CONFIG(WorldConfig,
     VALUE(LIFE_SPAN, int, 30, "How many updates without reproduction before an organism dies?"),
     VALUE(VIRULENCE, double, 0.8, "Fraction of host reward stolen by matching parasites"),
     VALUE(NUM_PARASITES, int, 30, "How many parasites to inject into the world?"),
+    VALUE(INJECT_PARASITES_AT, size_t, 1500, "At which update should parasites be injected?"),
+    VALUE(BONUS_UPDATE_LIMIT, int, 2000, "After how many updates should the host be punished for parasite reproduction?"),
   )
 
 #endif
