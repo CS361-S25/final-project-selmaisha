@@ -129,11 +129,12 @@ Current main issues:
 
 Todos before submitting:
 - GUI stuff:
-    - Have a legend that says which task is which color, or color coude the text of the readout values
+    - Have a legend that says which task is which color, or color code the text of the readout values
     - Have text explaining the setup
     - Have a box with some suggestions for what the user should try (the settings we end up running for instance, and try to adjust virulence)
     - Have text describing the paper results, and maybe what the user can expect when adjusting the settings, or need to be aware of
     - Make sure parasite viewing is also working (color coded for tasks as well)
+    - Fix config panel
 
 - Code cleanup:
     - Abstract functions, delete unused code, add comments

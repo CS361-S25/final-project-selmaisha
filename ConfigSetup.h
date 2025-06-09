@@ -3,6 +3,13 @@
 
 #include "emp/config/ArgManager.hpp"
 
+/**
+ * WorldConfig
+ * input: none
+ * output: Named configuration values
+ * purpose: Define all tunable parameters for the simulation, such as population size,
+ *          mutation rates, task rewards, parasite behavior, and runtime settings.
+ */
 EMP_BUILD_CONFIG(WorldConfig,
     VALUE(SEED, int, 3, "What value should the random seed be?"), 
     VALUE(NUM_START, double, 10, "How many starting organisms?"),

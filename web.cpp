@@ -26,7 +26,12 @@ emp::web::Document panel("panel");
 emp::web::Document explanation_doc("explanation");
 emp::web::Document paper_results_doc("paper_results");
 
-
+/**
+ * Constructor
+ * Input: none
+ * Output: none
+ * Purpose: Initialize the animation, world, UI controls, and configuration panel
+ */
 class BaselineAnimator : public emp::web::Animate {
   const int num_w_boxes = 32;
   const int num_h_boxes = 32;
@@ -56,6 +61,12 @@ public:
     SetupReadoutPanel();
   }
 
+  /**
+  * DoFrame
+  * Input: none
+  * Output: none
+  * Purpose: Main update loop for each animation frame. Injects parasites and updates world state.
+  */
   void DoFrame() override {
     if (update_count == 1500 && !parasites_injected) {
       std::cout << "Injecting parasites at update 1500" << std::endl;
@@ -74,6 +85,13 @@ public:
   }
 
 private:
+
+/**
+  * SetupCanvasAndControls
+  * Input: none
+  * Output: none
+  * Purpose: Add canvas and interactive buttons (toggle, step, apply settings) to the document
+  */
   void SetupCanvasAndControls() {
     doc << canvas;
 
@@ -87,65 +105,80 @@ private:
   }
 
 
+ /**
+ * ApplyConfigFromArgs
+ * Input: none
+ * Output: none
+ * Purpose: Load configuration values from URL parameters
+ */
   void ApplyConfigFromArgs() {
     auto specs = emp::ArgManager::make_builtin_specs(&config);
     emp::ArgManager am(emp::web::GetUrlParams(), specs);
     am.UseCallbacks();  // Updates config from URL
   }
 
+
+  /**
+  * SetupConfigPanel
+  * Input: none
+  * Output: none
+  * Purpose: Set up the GUI panel for modifying simulation parameters
+  */
   void SetupConfigPanel() {
     emp::prefab::ConfigPanel config_panel(config);
     config_panel.ExcludeSetting("SEED");
     config_panel.ExcludeSetting("OUTPUT_DIR");
     config_panel.ExcludeSetting("RUN_TIME");
+
     config_panel.SetRange("NUM_START", "1", "100", "1");
-    config_panel.SetRange("MUT_RATE", "0", "0.1");
+    config_panel.SetRange("MUTATION_RATE", "0", "0.1");
     config_panel.SetRange("LIFE_SPAN", "1", "1000", "1");
+    config_panel.SetRange("VIRULENCE", "0", "5", "0.1");
+    config_panel.SetRange("INJECT_PARASITES_AT", "0", "20000", "500");
 
     settings << config_panel;
   }
 
+  /**
+  * InitializeWorld
+  * Input: none
+  * Output: none
+  * Purpose: Configure the world structure, resize the grid, and populate with initial hosts
+  */
   void InitializeWorld() {
-    //world->SetPopStruct_Grid(num_w_boxes, num_h_boxes);
     world->SetPopStruct_Mixed();
     world->Resize(num_h_boxes, num_w_boxes);
-    // auto p = std::make_shared<Parasite>(world, 0.0);
-    // world->PlaceParasite(p, 0);  // Force parasite at cell 0
-    // emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
-    // world->InjectParasite(p);
     for (int i = 0; i < config.NUM_START(); ++i) {
-      // auto* new_org = new Organism(world, 0.0);
-      // world->Inject(*new_org);
       size_t pos = world->GetRandom().GetUInt(world->GetSize());
       Host* host = new Host(world, 0);
       world->InjectAt(*host, pos);
-
-
-      /* 
-      if (world->GetRandom().P(0.8)) {
-        // auto* host = new Organism(world, 0.0);
-        auto* host = new Host(world, 0.0);
-        world->InjectAt(*host, pos);
-      } else {
-        // auto p = std::make_shared<Parasite>(world, 0.0);
-        // world->PlaceParasite(p, pos);
-        emp::Ptr<Parasite> p = emp::NewPtr<Parasite>(world, 0.0);
-        world->InjectParasite(p);
-
-      } */
     }
     
     update_count = 0;
     Draw();
   }
 
+  /**
+  * ResetWorldFromConfig
+  * Input: none
+  * Output: none
+  * Purpose: Reset the simulation using updated config parameters and reseed RNG
+  */
   void ResetWorldFromConfig() {
-    ApplyConfigFromArgs();             // Reload settings from URL
-    random->ResetSeed(config.SEED());  // Reseed RNG
-    world.New(*random, &config);       // Reset world
-    InitializeWorld();                 // Re-inject and resize
+    ApplyConfigFromArgs();                  // Reload config from URL panel
+    random->ResetSeed(config.SEED());       // Reseed RNG
+    world.Delete();                         // Clean up the old world
+    world.New(*random, &config);            // Allocate a new world with new config
+    InitializeWorld();                      // Re-inject organisms, resize world
+    
   }
 
+  /**
+  * Draw
+  * Input: none
+  * Output: none
+  * Purpose: Visualize current state of the grid by drawing organisms and parasites on canvas
+  */
   void Draw() {
     canvas.Clear();
     const auto& pop = world->GetPopulation();
@@ -161,20 +194,12 @@ private:
           }
           if (org_ptr->HasParasite()) {
             auto parasite = org_ptr->GetParasite();
-            // std::string GetTaskColor() const {
-            // if (state.completed_EQU) return "purple";
-            //     return "black";  // fallback color
-            //   }
+            // Draw the parasite's task color
             std::string color = parasite->GetTaskColor();
             canvas.Circle(x * RECT_SIDE + RECT_SIDE / 2,
                           y * RECT_SIDE + RECT_SIDE / 2,
                           RECT_SIDE / 4, color, "red");
           }
-          // if (world->IsParasite(org_num)) {
-          //   canvas.Circle(x * RECT_SIDE + RECT_SIDE / 2,
-          //                 y * RECT_SIDE + RECT_SIDE / 2,
-          //                 RECT_SIDE / 4, "red");
-          // }
         } else {
           canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE - 1, RECT_SIDE - 1, "white", "black");
         }
@@ -183,6 +208,12 @@ private:
     }
   }
 
+  /**
+  * SetupReadoutPanel
+  * Input: none
+  * Output: none
+  * Purpose: Create and attach a panel that displays simulation statistics and task counts
+  */
   void SetupReadoutPanel() {
     emp::prefab::ReadoutPanel values("Readout Values", 100);
     values.AddValues(
@@ -255,6 +286,11 @@ private:
     panel << values;
   }
 
+  /**
+   * WriteExplanation
+   * Input: none
+   * Output: none Display the description of simulation rules in the explanation document
+   */
   void WriteExplanation(){
     explanation_doc << R"(
     <div style='max-width:520px;margin:1em 0;padding:1em;border:1px solid #ccc;border-radius:8px;background:#f9f9f9;'>
@@ -288,10 +324,33 @@ private:
           Task-solving and population statistics are tracked and displayed in the readout.
         </li>
       </ul>
+
+      <h3>Task Color Legend (Hosts & Parasites)</h3>
+        <p>Each color below represents a logic task. Both hosts (squares cells) and parasites (red circles) are color-coded by the task they’ve solved.</p>
+        <table style="border-collapse: collapse;">
+          <tr><td style="color:blue;">&#9632;</td><td>NOT</td></tr>
+          <tr><td style="color:red;">&#9632;</td><td>NAND</td></tr>
+          <tr><td style="color:green;">&#9632;</td><td>AND</td></tr>
+          <tr><td style="color:yellow;">&#9632;</td><td>ORN</td></tr>
+          <tr><td style="color:purple;">&#9632;</td><td>OR</td></tr>
+          <tr><td style="color:orange;">&#9632;</td><td>ANDN</td></tr>
+          <tr><td style="color:pink;">&#9632;</td><td>NOR</td></tr>
+          <tr><td style="color:cyan;">&#9632;</td><td>XOR</td></tr>
+          <tr><td style="color:brown;">&#9632;</td><td>EQU</td></tr>
+          <tr><td style="color:black;">&#9632;</td><td>None (has not yet solved any task)</td></tr>
+        </table>
+
     </div>
     )";
   }
 
+  
+  /**
+  * WriteExplanationResults
+  * Input: none
+  * Output: none
+  * Purpose: Summarize findings from Zaman et al. (2011) in a styled results document
+  */
   void WriteExplanationResults(){
     paper_results_doc << R"(
     <div style='max-width:520px;margin:1em 0;padding:1em;border:1px solid #ccc;border-radius:8px;background:#eef9f0;'>
@@ -335,5 +394,5 @@ BaselineAnimator animator;
 
 int main() {
   emp::Initialize();
-  animator.Step();  // Start paused
+  animator.Step();  
 }
