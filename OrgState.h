@@ -20,6 +20,8 @@ struct OrgState {
   size_t last_input_idx;     ///< Index of the most recent input in the circular buffer
   double points;             ///< Accumulated points used for reproduction decisions
   double age;           ///< Number of updates since last reproduction
+  int updates_since_task = 0; ///< Number of updates since last task solved
+
   emp::WorldPosition current_location; ///< Current location of the organism in the world
   bool isParasite = false; ///< Flag indicating if the organism is a parasite
 

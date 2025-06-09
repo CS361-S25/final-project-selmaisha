@@ -35,6 +35,10 @@ public:
   CPU GetCPU() { return cpu; }
   const CPU& GetCPU() const { return cpu; }
 
+  // In Organism, Host, and Parasite classes
+  CPU & GetCPURef() { return cpu; }
+  const CPU & GetCPURef() const { return cpu; }
+
   /**
    * input: double _in (points)
    * output: none

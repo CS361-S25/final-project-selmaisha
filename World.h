@@ -211,15 +211,15 @@ public:
     for (size_t i = 0; i < pop.size(); ++i) {
       if (IsOccupied(i)) {
         auto& org = pop[i];
-        if (org->GetCPU().state.completed_NOT) task_solvers.NOT_count++;
-        if (org->GetCPU().state.completed_NAND) task_solvers.NAND_count++;
-        if (org->GetCPU().state.completed_AND) task_solvers.AND_count++;
-        if (org->GetCPU().state.completed_ORN) task_solvers.ORN_count++;
-        if (org->GetCPU().state.completed_OR) task_solvers.OR_count++;
-        if (org->GetCPU().state.completed_ANDN) task_solvers.ANDN_count++;
-        if (org->GetCPU().state.completed_NOR) task_solvers.NOR_count++;
-        if (org->GetCPU().state.completed_XOR) task_solvers.XOR_count++;
-        if (org->GetCPU().state.completed_EQU) task_solvers.EQU_count++;
+        if (org->GetCPURef().state.completed_NOT) task_solvers.NOT_count++;
+        if (org->GetCPURef().state.completed_NAND) task_solvers.NAND_count++;
+        if (org->GetCPURef().state.completed_AND) task_solvers.AND_count++;
+        if (org->GetCPURef().state.completed_ORN) task_solvers.ORN_count++;
+        if (org->GetCPURef().state.completed_OR) task_solvers.OR_count++;
+        if (org->GetCPURef().state.completed_ANDN) task_solvers.ANDN_count++;
+        if (org->GetCPURef().state.completed_NOR) task_solvers.NOR_count++;
+        if (org->GetCPURef().state.completed_XOR) task_solvers.XOR_count++;
+        if (org->GetCPURef().state.completed_EQU) task_solvers.EQU_count++;
       }
     }
     return task_solvers;
@@ -229,7 +229,7 @@ public:
     TaskSolverCounts counts;
     for (size_t i = 0; i < pop.size(); ++i) {
       if (IsOccupied(i) && pop[i]->HasParasite()) {
-        const auto& state = pop[i]->GetParasite()->GetCPU().state;
+        const auto& state = pop[i]->GetParasite()->GetCPURef().state;
         if (state.completed_NOT) counts.NOT_count++;
         if (state.completed_NAND) counts.NAND_count++;
         if (state.completed_AND) counts.AND_count++;
@@ -602,8 +602,8 @@ public:
   const pop_t &GetPopulation() { return pop; }
 
     bool SolvedSameTask(emp::Ptr<Host> org, emp::Ptr<Parasite> parasite) {
-      const OrgState & host_state = org->GetCPU().state;
-      const OrgState & parasite_state = parasite->GetCPU().state;
+      const OrgState & host_state = org->GetCPURef().state;
+      const OrgState & parasite_state = parasite->GetCPURef().state;
 
       if (use_parasite_task_flags) { //use task flags
         if (parasite_state.completed_NOT && host_state.completed_NOT)  return true;
@@ -651,7 +651,7 @@ public:
       if (IsOccupied(i) && pop[i]->HasParasite()) {
         emp::Ptr<Parasite> parasite = pop[i]->GetParasite();
         if (!parasite) continue;
-        auto cpu = parasite->GetCPU(); // Defensive: GetCPU() returns by value
+        auto cpu = parasite->GetCPURef(); // Defensive: GetCPURef() returns by value
         const auto& program = cpu.GetProgram();
         int reproduce_count = 0;
         for (size_t j = 0; j < program.size(); ++j) {
@@ -679,18 +679,21 @@ public:
         //           << " has points: " << pop[i]->GetParasite()->GetPoints() 
         //           << std::endl;
         //pop[i]->GetParasite()->ClearTaskFlags();
-        pop[i]->GetParasite()->GetCPU().state.last_solved_tasks.clear();
+        pop[i]->GetParasite()->GetCPURef().state.last_solved_tasks.clear();
+        auto & cpu = pop[i]->GetParasite()->GetCPURef();
+        cpu.state.updates_since_task++;
 
         //if any task flags are true, add to parasite reproduction queue
-        if (pop[i]->GetParasite()->GetCPU().state.completed_NOT ||
-            pop[i]->GetParasite()->GetCPU().state.completed_NAND ||
-            pop[i]->GetParasite()->GetCPU().state.completed_AND ||
-            pop[i]->GetParasite()->GetCPU().state.completed_ORN ||
-            pop[i]->GetParasite()->GetCPU().state.completed_OR ||
-            pop[i]->GetParasite()->GetCPU().state.completed_ANDN ||
-            pop[i]->GetParasite()->GetCPU().state.completed_NOR ||
-            pop[i]->GetParasite()->GetCPU().state.completed_XOR ||
-            pop[i]->GetParasite()->GetCPU().state.completed_EQU) {
+        if (pop[i]->GetParasite()->GetCPURef().state.completed_NOT ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_NAND ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_AND ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_ORN ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_OR ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_ANDN ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_NOR ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_XOR ||
+            pop[i]->GetParasite()->GetCPURef().state.completed_EQU) {
+          pop[i]->GetParasite()->AddPoints(1); // Parasite gets a small bonus for solving a task
           parasite_reproduce_queue.push_back(emp::WorldPosition(i));
         }
       }
@@ -711,11 +714,11 @@ public:
         emp::Ptr<Parasite> parasite = pop[i]->GetParasite();
         //parasite->ClearTaskFlags(); // Clear parasite flags before processing
         parasite->Process(*this, i);
-        if ( ((this->update_num)-INJECT_PARASITES_AT) < BONUS_UPDATE_LIMIT && parasite_life_bonus) {
+        if ( ((this->update_num)-INJECT_PARASITES_AT) < BONUS_UPDATE_LIMIT/2 && parasite_life_bonus) {
           // std::cout << "Parasite at index " << i 
           //           << " received mini bonus: " << parasite->GetPoints() 
           //           << std::endl;
-          parasite->AddPoints(1);
+          parasite->AddPoints(3);
         }
       }
 
@@ -728,6 +731,13 @@ public:
           pop[i]->RemoveParasite();
           //hypothesis: parasites are dying because their hosts are overwritten
           //parasites need to be better at reproducing I think
+        }
+        auto & cpu = pop[i]->GetParasite()->GetCPURef();
+        auto & state = cpu.state;
+        if (state.updates_since_task > 100) {
+          std::cout << "Parasite at index " << i << " removed after " 
+                    << state.updates_since_task << " updates without solving a task." << std::endl;
+          pop[i]->RemoveParasite();
         }
       }
     }
@@ -759,7 +769,7 @@ public:
       emp::Ptr<Parasite> parasite = host->GetParasite();
       //check if parasite deserves points
       if (SolvedSameTask(host, parasite)) {
-        parasite->AddPoints(3 * GetVirulence() * GetReward()); //boosted by x3 - goal is to be able to remove this
+        parasite->AddPoints(3 * GetVirulence() * GetReward());
         if (this->update_num-INJECT_PARASITES_AT > (BONUS_UPDATE_LIMIT/2) || !host_protection) { //only punish host after a while
           host->AddPoints(-GetVirulence() * GetReward()); // Host loses points
         }
@@ -825,9 +835,11 @@ public:
       emp::Ptr<Host> host = pop[location.GetIndex()];
       if (!host->HasParasite()) continue;
       emp::Ptr<Parasite> parasite = host->GetParasite();
-
+      std::cout << "Parasite at index " << location.GetIndex() 
+                << " has " << parasite->GetPoints() << " points and is entering reproduction loop." 
+                << std::endl;
       //try to reproduce the parasite until it can't anymore
-      while (parasite->GetPoints() > 10 && !viable_hosts.empty() && parasite_multiple_reproduction) {
+      while (parasite->GetPoints() >= 1 && !viable_hosts.empty() && parasite_multiple_reproduction) {
         std::cout << "Parasite at index " << location.GetIndex() 
                   << " has " << parasite->GetPoints() << " points and will try to reproduce."
                   << std::endl;
@@ -897,8 +909,9 @@ public:
                   << " Solved task: " << task->name() << std::endl;
         // Track all solved tasks this update
         state.last_solved_tasks.push_back(task->name());
+        state.updates_since_task = 0;
         // Give bonus points and queue for reproduction if within bonus window
-        if (this->update_num - INJECT_PARASITES_AT < BONUS_UPDATE_LIMIT && parasite_task_bonus) {
+        if (this->update_num - INJECT_PARASITES_AT < BONUS_UPDATE_LIMIT*2 && parasite_task_bonus) {
           state.points += newPoints*2;
           std::cout << "gave parasite bonus task points and added it to reproduction queue" << std::endl;
           parasite_reproduce_queue.push_back(state.current_location);
